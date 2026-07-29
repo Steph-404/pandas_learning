@@ -11,7 +11,7 @@ const NarrativeAssets = () => {
   return (
     <>
       {/* Vehicle Billboard in Arrival Zone */}
-      <Billboard position={[4, 3, 28]}>
+      <Billboard position={[0, 3, 35]}>
         <mesh>
           <planeGeometry args={[8, 8]} />
           <meshBasicMaterial 

@@ -15,8 +15,8 @@ export const CameraController = () => {
   const setSequence = useGameStore(state => state.setSequence);
   
   const POSITIONS = {
-    CAR_ARRIVING: { pos: [2, 3, 26], lookAt: [4, 3, 28], duration: 0 },
-    ALIGHTING: { pos: [0, 1.5, 6], lookAt: [0, 1.5, 0], duration: 3000 },
+    CAR_ARRIVING: { pos: [0, 1.5, 45], lookAt: [0, 1.5, 35], duration: 0 },
+    ALIGHTING: { pos: [0, 1.5, 6], lookAt: [0, 1.5, 0], duration: 4000 },
     GREETING: { pos: [0, 1.5, 6], lookAt: [0, 1.5, 0], duration: 0 },
     TRANSITION_LAB: { pos: [0, 1.5, -2], lookAt: [0, 1.5, -6], duration: 2500 },
     IN_LAB: { pos: [0, 1.5, -2], lookAt: [0, 1.5, -6], duration: 0 }
