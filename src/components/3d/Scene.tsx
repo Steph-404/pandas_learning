@@ -1,6 +1,6 @@
 import React, { Suspense } from 'react';
 import { Canvas } from '@react-three/fiber';
-import { Sky, Billboard } from '@react-three/drei';
+import { Stars, Billboard } from '@react-three/drei';
 import * as THREE from 'three';
 import { CameraController } from './CameraController';
 import { useAssets } from './AssetManager';
@@ -77,14 +77,15 @@ export const Scene: React.FC<{ children: React.ReactNode }> = ({ children }) => 
   return (
     <div style={{ width: '100vw', height: '100vh', position: 'relative', backgroundColor: '#000' }}>
       <Canvas shadows>
+        <color attach="background" args={['#050812']} />
+        <Stars radius={100} depth={50} count={3000} factor={4} saturation={0} fade speed={1} />
         <CameraController />
-        <Sky sunPosition={[100, 20, 100]} turbidity={0.1} rayleigh={0.5} />
-        <ambientLight intensity={0.4} color="#a0d8ef" />
+        <ambientLight intensity={0.2} color="#406080" />
         <directionalLight 
           castShadow 
           position={[10, 20, 5]} 
-          intensity={1.2} 
-          color="#ffeedd"
+          intensity={0.8} 
+          color="#aaccff"
           shadow-mapSize-width={1024} 
           shadow-mapSize-height={1024} 
         />

@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 
-type GameSequence = 'ARRIVING' | 'GREETING' | 'TRANSITION_LAB' | 'IN_LAB' | 'COMPLETED';
+type GameSequence = 'CAR_ARRIVING' | 'ALIGHTING' | 'GREETING' | 'TRANSITION_LAB' | 'IN_LAB' | 'COMPLETED';
 
 interface GameState {
   sequence: GameSequence;
@@ -21,7 +21,7 @@ interface GameState {
 }
 
 export const useGameStore = create<GameState>((set) => ({
-  sequence: 'ARRIVING',
+  sequence: 'CAR_ARRIVING',
   currentStageId: 1,
   score: 0,
   isDialogueActive: false,

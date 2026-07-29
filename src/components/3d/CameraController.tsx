@@ -15,9 +15,10 @@ export const CameraController = () => {
   const setSequence = useGameStore(state => state.setSequence);
   
   const POSITIONS = {
-    ARRIVING: { pos: [0, 2, 35], lookAt: [0, 1.5, 0], duration: 0 },
-    GREETING: { pos: [0, 1.5, 6], lookAt: [0, 1.5, 0], duration: 4000 },
-    TRANSITION_LAB: { pos: [0, 1.5, -2], lookAt: [0, 1.5, -6], duration: 3000 },
+    CAR_ARRIVING: { pos: [2, 3, 26], lookAt: [4, 3, 28], duration: 0 },
+    ALIGHTING: { pos: [0, 1.5, 6], lookAt: [0, 1.5, 0], duration: 3000 },
+    GREETING: { pos: [0, 1.5, 6], lookAt: [0, 1.5, 0], duration: 0 },
+    TRANSITION_LAB: { pos: [0, 1.5, -2], lookAt: [0, 1.5, -6], duration: 2500 },
     IN_LAB: { pos: [0, 1.5, -2], lookAt: [0, 1.5, -6], duration: 0 }
   };
 
@@ -30,9 +31,9 @@ export const CameraController = () => {
       currentLookAt.set(target.lookAt[0], target.lookAt[1], target.lookAt[2]);
       camera.lookAt(currentLookAt);
       
-      if (sequence === 'ARRIVING') {
-        // Auto start sequence
-        setTimeout(() => setSequence('GREETING'), 1000);
+      if (sequence === 'CAR_ARRIVING') {
+        // Auto start sequence: Alight from car
+        setTimeout(() => setSequence('ALIGHTING'), 1000);
       }
       return;
     }
@@ -55,12 +56,13 @@ export const CameraController = () => {
         camera.lookAt(currentLookAt);
       },
       complete: () => {
-        if (sequence === 'GREETING') {
+        if (sequence === 'ALIGHTING') {
+          setSequence('GREETING');
           setDialogueActive(true);
         }
         if (sequence === 'TRANSITION_LAB') {
           setSequence('IN_LAB');
-          setDialogueActive(true); // Restart dialogue inside lab
+          useGameStore.getState().setQuestionActive(true);
         }
       }
     });

@@ -4,7 +4,7 @@ import { STORYLINE } from '../../data/storyline';
 import anime from 'animejs';
 
 export const DialogueBox: React.FC = () => {
-  const { currentStageId, isDialogueActive, setDialogueActive, setQuestionActive } = useGameStore();
+  const { currentStageId, isDialogueActive, setDialogueActive, setSequence } = useGameStore();
   const stage = STORYLINE.find(s => s.id === currentStageId);
   const containerRef = useRef<HTMLDivElement>(null);
   const [currentLineIndex, setCurrentLineIndex] = React.useState(0);
@@ -28,7 +28,7 @@ export const DialogueBox: React.FC = () => {
       setCurrentLineIndex(prev => prev + 1);
     } else {
       setDialogueActive(false);
-      setQuestionActive(true);
+      setSequence('TRANSITION_LAB');
       setCurrentLineIndex(0);
     }
   };
