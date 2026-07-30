@@ -242,6 +242,7 @@ export const Scene: React.FC<{ children: React.ReactNode }> = ({ children }) => 
         </Suspense>
 
         {/* ── POST-PROCESSING ── */}
+        {/*
         <EffectComposer>
           <Bloom 
             luminanceThreshold={0.7} 
@@ -255,6 +256,7 @@ export const Scene: React.FC<{ children: React.ReactNode }> = ({ children }) => 
           />
           <Vignette eskil={false} offset={0.3} darkness={0.6} />
         </EffectComposer>
+        */}
       </Canvas>
 
       {children}
