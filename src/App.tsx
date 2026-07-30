@@ -3,6 +3,7 @@ import { DialogueBox } from './components/ui/DialogueBox';
 import { QuestionPanel } from './components/ui/QuestionPanel';
 import { FarewellDialogue } from './components/ui/FarewellDialogue';
 import { HUD } from './components/ui/HUD';
+import { CodeSandbox } from './components/ui/CodeSandbox';
 import { useGameStore } from './store/gameStore';
 
 function App() {
@@ -64,6 +65,7 @@ function App() {
       <HUD />
       <DialogueBox />
       <QuestionPanel />
+      <CodeSandbox />
       <FarewellDialogue />
     </Scene>
   );

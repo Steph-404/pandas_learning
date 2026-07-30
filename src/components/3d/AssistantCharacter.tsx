@@ -1,194 +1,144 @@
-import { useRef } from 'react';
+import { useRef, useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
-import { Text } from '@react-three/drei';
+import { Text, Float } from '@react-three/drei';
 import * as THREE from 'three';
 import { useGameStore } from '../../store/gameStore';
+import { AssistantModel } from './AssistantModel';
 
 export const AssistantCharacter = () => {
-  const chestRef = useRef<THREE.Mesh>(null);
-  const headRef = useRef<THREE.Mesh>(null);
-  const armLRef = useRef<THREE.Mesh>(null);
-  const armRRef = useRef<THREE.Mesh>(null);
   const groupRef = useRef<THREE.Group>(null);
-  const haloRef = useRef<THREE.PointLight>(null);
-
   const sequence = useGameStore(state => state.sequence);
 
-  useFrame((state) => {
-    const t = state.clock.elapsedTime;
-
-    // Breathing chest
-    if (chestRef.current) {
-      chestRef.current.scale.y = 1 + Math.sin(t * 1.4) * 0.025;
+  // Determine animation based on sequence
+  const animation = useMemo(() => {
+    switch (sequence) {
+      case 'CAR_ARRIVING': return 'Idle'; 
+      case 'ALIGHTING': return 'Walk'; // Walks towards building as user alights
+      case 'GREETING': return 'Wave'; // Waves twice
+      case 'TRANSITION_LAB': return 'Walk'; // Walks to the left lab
+      case 'IN_LAB': return 'Idle';
+      case 'APPROACHING_SCREEN': return 'Idle';
+      case 'FAREWELL_TRANSIT': return 'Walk';
+      case 'FAREWELL': return 'Wave';
+      default: return 'Idle';
     }
-    // Gentle head bob
-    if (headRef.current) {
-      headRef.current.position.y = 1.72 + Math.sin(t * 1.4) * 0.012;
-    }
-    // Subtle arm swing
-    if (armLRef.current) {
-      armLRef.current.rotation.x = Math.sin(t * 0.9) * 0.07;
-    }
-    if (armRRef.current) {
-      armRRef.current.rotation.x = -Math.sin(t * 0.9) * 0.07;
-    }
-    // Halo pulse
-    if (haloRef.current) {
-      haloRef.current.intensity = 1.0 + Math.sin(t * 2) * 0.15;
-    }
-
+  }, [sequence]);
+  
+  useFrame((state, delta) => {
+    if (!groupRef.current) return;
+    
     // Animate assistant position based on sequence:
-    // During FAREWELL_TRANSIT/FAREWELL: she walks back to entrance
-    if (groupRef.current) {
-      let targetZ = -13; // default: standing at entrance
-      if (sequence === 'FAREWELL_TRANSIT' || sequence === 'FAREWELL') {
-        targetZ = -12; // slightly closer to camera for farewell
+    let targetZ = 12; // Start standing away from building, closer to the road
+    let targetX = 0;
+    
+    // Waypoint logic for entering the lab without phasing through walls
+    if (sequence === 'ALIGHTING' || sequence === 'GREETING') {
+      targetZ = -12; // Walks to entrance
+      targetX = 0;
+    } else if (sequence === 'TRANSITION_LAB' || sequence === 'IN_LAB' || sequence === 'APPROACHING_SCREEN') {
+      const currentZ = groupRef.current.position.z;
+      const currentX = groupRef.current.position.x;
+      
+      if (currentZ > -15.5 && currentX > -2) {
+        // Step 1: walk straight into the lobby
+        targetZ = -16;
+        targetX = 0;
+      } else if (currentX > -14) {
+        // Step 2: walk left down the hallway
+        targetZ = -16;
+        targetX = -15;
+      } else {
+        // Step 3: enter the lab room
+        targetZ = -19.5;
+        targetX = -16; // Move to the side of the desk so screen is visible
       }
-      // Smooth lerp toward target z
-      groupRef.current.position.z += (targetZ - groupRef.current.position.z) * 0.04;
+    } else if (sequence === 'FAREWELL_TRANSIT' || sequence === 'FAREWELL') {
+      targetZ = -12;
+      targetX = 0;
     }
+
+    const prevX = groupRef.current.position.x;
+    const prevZ = groupRef.current.position.z;
+
+    // Constant speed movement instead of lerp
+    const distZ = targetZ - prevZ;
+    const distX = targetX - prevX;
+    const dist = Math.sqrt(distX * distX + distZ * distZ);
+    
+    if (dist > 0.05) {
+      const moveSpeed = 3.5; // Constant walking speed
+      const step = Math.min(moveSpeed * delta, dist);
+      groupRef.current.position.x += (distX / dist) * step;
+      groupRef.current.position.z += (distZ / dist) * step;
+    }
+    
+    // Calculate direction of movement
+    const dx = groupRef.current.position.x - prevX;
+    const dz = groupRef.current.position.z - prevZ;
+    const speed = Math.sqrt(dx*dx + dz*dz) / delta;
+    
+    let targetRotation = groupRef.current.rotation.y;
+    
+    if (speed > 0.1) {
+      // If moving, face the direction of movement (added PI to fix backward walking)
+      targetRotation = Math.atan2(dx, dz) + Math.PI;
+    } else {
+      // If stationary, face the user
+      // Player is roughly at X=-15, Z=-18 in lab, X=0, Z=8 outside
+      let lookTargetX = 0;
+      let lookTargetZ = 8;
+      if (sequence === 'IN_LAB' || sequence === 'APPROACHING_SCREEN') {
+          lookTargetX = -15;
+          lookTargetZ = -18;
+      }
+      targetRotation = Math.atan2(lookTargetX - groupRef.current.position.x, lookTargetZ - groupRef.current.position.z) + Math.PI;
+    }
+    
+    // Smooth rotation
+    const currentRot = groupRef.current.rotation.y;
+    // Handle wrap around
+    let diff = targetRotation - currentRot;
+    while (diff < -Math.PI) diff += Math.PI * 2;
+    while (diff > Math.PI) diff -= Math.PI * 2;
+    
+    groupRef.current.rotation.y += diff * delta * 5.0;
   });
 
-  const skinColor = '#c8956c';
-  const shirtColor = '#2d5fa6';
-  const pantsColor = '#1c2a3a';
-  const glassColor = '#aaccee';
-  const shoeColor = '#2a1a0a';
-  const hairColor = '#1a1008';
-  const coatColor = '#1d3a6a';
-
   return (
-    // Start at entrance z:-13, face toward camera (+Z direction)
-    <group ref={groupRef} position={[0, 0, -13]}>
-      {/* Warm halo above head */}
-      <pointLight ref={haloRef} position={[0, 3.2, 0]} color="#ffd4a0" intensity={1.0} distance={6} />
+    <group ref={groupRef} position={[0, 0, 18]}>
+      {/* Halo/Spotlight */}
+      <pointLight position={[0, 4, 0]} color="#ffd4a0" intensity={2.0} distance={8} />
 
-      {/* Shoes */}
-      <mesh position={[-0.16, 0.07, 0]} castShadow>
-        <boxGeometry args={[0.17, 0.12, 0.32]} />
-        <meshStandardMaterial color={shoeColor} roughness={0.8} />
-      </mesh>
-      <mesh position={[0.16, 0.07, 0]} castShadow>
-        <boxGeometry args={[0.17, 0.12, 0.32]} />
-        <meshStandardMaterial color={shoeColor} roughness={0.8} />
-      </mesh>
-
-      {/* Trousers */}
-      <mesh position={[-0.15, 0.52, 0]} castShadow>
-        <boxGeometry args={[0.23, 0.75, 0.24]} />
-        <meshStandardMaterial color={pantsColor} roughness={0.9} />
-      </mesh>
-      <mesh position={[0.15, 0.52, 0]} castShadow>
-        <boxGeometry args={[0.23, 0.75, 0.24]} />
-        <meshStandardMaterial color={pantsColor} roughness={0.9} />
-      </mesh>
-
-      {/* Shirt torso */}
-      <mesh ref={chestRef} position={[0, 1.1, 0]} castShadow>
-        <boxGeometry args={[0.58, 0.62, 0.28]} />
-        <meshStandardMaterial color={shirtColor} roughness={0.85} />
-      </mesh>
-
-      {/* Lab coat over shirt */}
-      <mesh position={[0, 1.1, -0.02]} castShadow>
-        <boxGeometry args={[0.66, 0.64, 0.26]} />
-        <meshStandardMaterial color={coatColor} roughness={0.9} transparent opacity={0.55} />
-      </mesh>
-
-      {/* Left arm */}
-      <mesh ref={armLRef} position={[-0.42, 1.08, 0]} castShadow>
-        <boxGeometry args={[0.18, 0.58, 0.18]} />
-        <meshStandardMaterial color={coatColor} roughness={0.9} />
-      </mesh>
-
-      {/* Right arm */}
-      <mesh ref={armRRef} position={[0.42, 1.08, 0]} castShadow>
-        <boxGeometry args={[0.18, 0.58, 0.18]} />
-        <meshStandardMaterial color={coatColor} roughness={0.9} />
-      </mesh>
-
-      {/* Left hand */}
-      <mesh position={[-0.42, 0.74, 0]} castShadow>
-        <boxGeometry args={[0.14, 0.12, 0.12]} />
-        <meshStandardMaterial color={skinColor} roughness={0.8} />
-      </mesh>
-
-      {/* Right hand */}
-      <mesh position={[0.42, 0.74, 0]} castShadow>
-        <boxGeometry args={[0.14, 0.12, 0.12]} />
-        <meshStandardMaterial color={skinColor} roughness={0.8} />
-      </mesh>
-
-      {/* Neck */}
-      <mesh position={[0, 1.52, 0]} castShadow>
-        <boxGeometry args={[0.16, 0.18, 0.16]} />
-        <meshStandardMaterial color={skinColor} roughness={0.8} />
-      </mesh>
-
-      {/* Head */}
-      <mesh ref={headRef} position={[0, 1.72, 0]} castShadow>
-        <boxGeometry args={[0.38, 0.42, 0.35]} />
-        <meshStandardMaterial color={skinColor} roughness={0.75} />
-      </mesh>
-
-      {/* Hair */}
-      <mesh position={[0, 1.93, 0]} castShadow>
-        <boxGeometry args={[0.40, 0.16, 0.37]} />
-        <meshStandardMaterial color={hairColor} roughness={0.95} />
-      </mesh>
-      {/* Hair back */}
-      <mesh position={[0, 1.74, 0.19]} castShadow>
-        <boxGeometry args={[0.38, 0.36, 0.04]} />
-        <meshStandardMaterial color={hairColor} roughness={0.95} />
-      </mesh>
-
-      {/* Glasses left lens */}
-      <mesh position={[-0.10, 1.73, -0.18]}>
-        <boxGeometry args={[0.12, 0.08, 0.02]} />
-        <meshStandardMaterial color={glassColor} transparent opacity={0.55} metalness={0.2} />
-      </mesh>
-
-      {/* Glasses right lens */}
-      <mesh position={[0.10, 1.73, -0.18]}>
-        <boxGeometry args={[0.12, 0.08, 0.02]} />
-        <meshStandardMaterial color={glassColor} transparent opacity={0.55} metalness={0.2} />
-      </mesh>
-
-      {/* Glasses bridge */}
-      <mesh position={[0, 1.73, -0.18]}>
-        <boxGeometry args={[0.06, 0.02, 0.02]} />
-        <meshStandardMaterial color="#888" metalness={0.9} roughness={0.1} />
-      </mesh>
-
-      {/* Name badge */}
-      <mesh position={[0.18, 1.12, -0.15]}>
-        <boxGeometry args={[0.16, 0.10, 0.01]} />
-        <meshStandardMaterial color="#ffffff" emissive="#ffffff" emissiveIntensity={0.5} />
-      </mesh>
+      {/* The Animated Model */}
+      <AssistantModel animation={animation} scale={[0.8, 0.8, 0.8]} />
 
       {/* Floating name label */}
-      <Text
-        position={[0, 2.25, 0]}
-        fontSize={0.14}
-        color="#1a4a8a"
-        anchorX="center"
-        anchorY="middle"
-        outlineWidth={0.006}
-        outlineColor="#ffffff"
-      >
-        Dr. Amara Nwosu
-      </Text>
-      <Text
-        position={[0, 2.08, 0]}
-        fontSize={0.085}
-        color="#2a6aaa"
-        anchorX="center"
-        anchorY="middle"
-        outlineWidth={0.004}
-        outlineColor="#ffffff"
-      >
-        Senior Data Scientist
-      </Text>
+      <Float speed={2} rotationIntensity={0} floatIntensity={0.2} floatingRange={[-0.05, 0.05]}>
+        <group position={[0, 3.2, 0]}>
+          <Text
+            position={[0, 0, 0]}
+            fontSize={0.2}
+            color="#1a4a8a"
+            anchorX="center"
+            anchorY="middle"
+            outlineWidth={0.01}
+            outlineColor="#ffffff"
+          >
+            Dr. Amara Nwosu
+          </Text>
+          <Text
+            position={[0, -0.22, 0]}
+            fontSize={0.12}
+            color="#2a6aaa"
+            anchorX="center"
+            anchorY="middle"
+            outlineWidth={0.005}
+            outlineColor="#ffffff"
+          >
+            Senior Data Scientist
+          </Text>
+        </group>
+      </Float>
     </group>
   );
 };

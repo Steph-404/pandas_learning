@@ -32,7 +32,11 @@ export const DialogueBox: React.FC = () => {
       setCurrentLineIndex(prev => prev + 1);
     } else {
       setDialogueActive(false);
-      setSequence('TRANSITION_LAB');
+      if (currentStageId === 1) {
+        setSequence('TRANSITION_LAB');
+      } else {
+        useGameStore.getState().setQuestionActive(true);
+      }
     }
   };
 
@@ -60,16 +64,18 @@ export const DialogueBox: React.FC = () => {
       }}
     >
       {/* Speaker badge */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '14px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '14px' }}>
         <div style={{
-          width: 36, height: 36, borderRadius: '50%',
-          background: 'linear-gradient(135deg, #1a6aaa, #0a3a6a)',
+          width: 56, height: 56, borderRadius: '50%',
           border: '2px solid rgba(100,200,255,0.5)',
+          overflow: 'hidden',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: '18px',
-        }}>👩‍🔬</div>
+          boxShadow: '0 0 15px rgba(100, 200, 255, 0.3)',
+        }}>
+          <img src="/assistant.jpg" alt="Dr. Amara Nwosu" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+        </div>
         <div>
-          <div style={{ fontSize: '0.82rem', fontWeight: 700, color: '#64c8ff', letterSpacing: '0.04em' }}>
+          <div style={{ fontSize: '0.9rem', fontWeight: 700, color: '#64c8ff', letterSpacing: '0.04em' }}>
             DR. AMARA NWOSU
           </div>
           <div style={{ fontSize: '0.68rem', color: '#6090c0', letterSpacing: '0.08em', marginTop: 1 }}>
@@ -123,7 +129,7 @@ export const DialogueBox: React.FC = () => {
           onMouseEnter={e => (e.currentTarget.style.borderColor = 'rgba(100,200,255,0.8)')}
           onMouseLeave={e => (e.currentTarget.style.borderColor = 'rgba(100,180,255,0.4)')}
         >
-          {isLast ? '→ Head to the Lab' : 'Continue'}
+          {isLast ? (currentStageId === 1 ? '→ Head to the Lab' : 'Start Task') : 'Continue'}
         </button>
       </div>
     </div>

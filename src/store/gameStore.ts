@@ -7,6 +7,7 @@ export type GameSequence =
   | 'TRANSITION_LAB'
   | 'IN_LAB'
   | 'APPROACHING_SCREEN'
+  | 'QUESTION_ACTIVE'
   | 'FAREWELL_TRANSIT'
   | 'FAREWELL'
   | 'COMPLETED';
@@ -19,6 +20,9 @@ interface GameState {
   isQuestionActive: boolean;
   selectedAnswer: string | null;
   feedback: string | null;
+  briefingActive: boolean;
+  briefingPage: number;
+  carProgress: number;
   setSequence: (seq: GameSequence) => void;
   setStage: (stageId: number) => void;
   incrementScore: () => void;
@@ -37,6 +41,9 @@ export const useGameStore = create<GameState>((set) => ({
   isQuestionActive: false,
   selectedAnswer: null,
   feedback: null,
+  briefingActive: false,
+  briefingPage: 1,
+  carProgress: 0,
 
   setSequence: (seq) => set({ sequence: seq }),
   setStage: (stageId) => set({ currentStageId: stageId }),

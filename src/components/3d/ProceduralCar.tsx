@@ -29,6 +29,8 @@ export const ProceduralCar = ({ onArrived }: ProceduralCarProps) => {
     const currentZ = groupRef.current.position.z;
     const distLeft = currentZ - stopZ;
 
+    // No longer need to track progress since the BriefingOverlay is gone.
+
     if (distLeft < 20) {
       speed.current = Math.max(0.006, distLeft * 0.011);
     }

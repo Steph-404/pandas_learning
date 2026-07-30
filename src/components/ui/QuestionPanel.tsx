@@ -16,28 +16,55 @@ export const QuestionPanel: React.FC = () => {
   const containerRef = useRef<HTMLDivElement>(null);
   const isLastStage = currentStageId >= STORYLINE.length;
 
+  const [showHintButton, setShowHintButton] = React.useState(false);
+  const [eliminatedOptions, setEliminatedOptions] = React.useState<string[]>([]);
+
   useEffect(() => {
-    if (isQuestionActive && containerRef.current) {
+    if (isQuestionActive && stage?.type === 'multiple_choice' && containerRef.current) {
       anime({
         targets: containerRef.current,
         opacity: [0, 1],
         duration: 900,
         easing: 'easeOutExpo',
       });
+      // Reset hint state for new question
+      setShowHintButton(false);
+      setEliminatedOptions([]);
     }
-  }, [isQuestionActive]);
+  }, [isQuestionActive, stage, currentStageId]);
 
-  if (!stage || !isQuestionActive) return null;
+  useEffect(() => {
+    let timer: number;
+    if (isQuestionActive && !selectedAnswer) {
+      timer = window.setTimeout(() => setShowHintButton(true), 10000);
+    }
+    return () => clearTimeout(timer);
+  }, [isQuestionActive, selectedAnswer, currentStageId]);
+
+  if (!stage || !isQuestionActive || stage.type !== 'multiple_choice' || !stage.question) return null;
+
+  const handleHint = () => {
+    const incorrectOptions = stage.question!.options
+      .map(o => o.id)
+      .filter(id => id !== stage.question!.correctOptionId && !eliminatedOptions.includes(id));
+    
+    if (incorrectOptions.length > 0) {
+      const toEliminate = incorrectOptions[Math.floor(Math.random() * incorrectOptions.length)];
+      setEliminatedOptions(prev => [...prev, toEliminate]);
+      setShowHintButton(false); // Hide button after using
+    }
+  };
 
   const handleAnswer = (optionId: string) => {
     if (selectedAnswer) return;
     setSelectedAnswer(optionId);
-    const isCorrect = optionId === stage.question.correctOptionId;
+    const isCorrect = optionId === stage.question!.correctOptionId;
     if (isCorrect) {
+      // Half points if they used a hint (optional, keeping it simple for now)
       incrementScore();
-      setFeedback(`✓ ${stage.question.explanation}`);
+      setFeedback(`✓ ${stage.question!.explanation}`);
     } else {
-      setFeedback(`✗ Incorrect. ${stage.question.explanation}`);
+      setFeedback(`✗ Incorrect. ${stage.question!.explanation}`);
     }
   };
 
@@ -127,9 +154,10 @@ export const QuestionPanel: React.FC = () => {
 
           {/* Answer options */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '20px' }}>
-            {stage.question.options.map((option) => {
+            {stage.question!.options.map((option) => {
               const isSelected = selectedAnswer === option.id;
-              const isCorrect = option.id === stage.question.correctOptionId;
+              const isCorrect = option.id === stage.question!.correctOptionId;
+              const isEliminated = eliminatedOptions.includes(option.id);
 
               let bg = 'rgba(10,25,60,0.65)';
               let border = 'rgba(40,100,200,0.2)';
@@ -138,20 +166,24 @@ export const QuestionPanel: React.FC = () => {
               if (selectedAnswer) {
                 if (isCorrect) { bg = 'rgba(10,60,25,0.75)'; border = 'rgba(40,200,80,0.5)'; color = '#88eea8'; }
                 else if (isSelected) { bg = 'rgba(60,10,10,0.75)'; border = 'rgba(200,40,40,0.5)'; color = '#ee8888'; }
+              } else if (isEliminated) {
+                bg = 'rgba(10,15,30,0.4)';
+                border = 'rgba(40,60,100,0.1)';
+                color = '#445577';
               }
 
               return (
                 <button
                   key={option.id}
                   onClick={() => handleAnswer(option.id)}
-                  disabled={!!selectedAnswer}
+                  disabled={!!selectedAnswer || isEliminated}
                   style={{
                     background: bg,
                     border: `1px solid ${border}`,
                     borderRadius: '6px',
                     padding: '13px 18px',
                     textAlign: 'left',
-                    cursor: selectedAnswer ? 'default' : 'pointer',
+                    cursor: (selectedAnswer || isEliminated) ? 'default' : 'pointer',
                     display: 'flex',
                     gap: '14px',
                     alignItems: 'flex-start',
@@ -160,15 +192,16 @@ export const QuestionPanel: React.FC = () => {
                     fontFamily: 'inherit',
                     fontSize: '0.88rem',
                     lineHeight: '1.55',
+                    textDecoration: isEliminated ? 'line-through' : 'none',
                   }}
                   onMouseEnter={e => {
-                    if (!selectedAnswer) {
+                    if (!selectedAnswer && !isEliminated) {
                       e.currentTarget.style.borderColor = 'rgba(100,180,255,0.55)';
                       e.currentTarget.style.background = 'rgba(16,40,90,0.85)';
                     }
                   }}
                   onMouseLeave={e => {
-                    if (!selectedAnswer) {
+                    if (!selectedAnswer && !isEliminated) {
                       e.currentTarget.style.borderColor = 'rgba(40,100,200,0.2)';
                       e.currentTarget.style.background = 'rgba(10,25,60,0.65)';
                     }
@@ -177,7 +210,7 @@ export const QuestionPanel: React.FC = () => {
                   <span style={{
                     fontWeight: 700,
                     fontSize: '0.78rem',
-                    color: selectedAnswer ? (isCorrect ? '#44ee88' : isSelected ? '#ee4444' : '#2060a0') : '#1a88ff',
+                    color: selectedAnswer ? (isCorrect ? '#44ee88' : isSelected ? '#ee4444' : '#2060a0') : isEliminated ? '#334466' : '#1a88ff',
                     minWidth: 22,
                     marginTop: 2,
                   }}>
@@ -188,6 +221,36 @@ export const QuestionPanel: React.FC = () => {
               );
             })}
           </div>
+
+          {/* Hint button */}
+          {showHintButton && !selectedAnswer && (
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '18px' }}>
+              <button
+                onClick={handleHint}
+                style={{
+                  background: 'transparent',
+                  color: '#f8a840',
+                  border: '1px dashed rgba(248,168,64,0.4)',
+                  padding: '6px 16px',
+                  borderRadius: '16px',
+                  cursor: 'pointer',
+                  fontSize: '0.75rem',
+                  letterSpacing: '0.05em',
+                  transition: 'all 0.2s',
+                }}
+                onMouseEnter={e => {
+                  e.currentTarget.style.background = 'rgba(248,168,64,0.1)';
+                  e.currentTarget.style.borderColor = 'rgba(248,168,64,0.8)';
+                }}
+                onMouseLeave={e => {
+                  e.currentTarget.style.background = 'transparent';
+                  e.currentTarget.style.borderColor = 'rgba(248,168,64,0.4)';
+                }}
+              >
+                💡 Need a hint? (Eliminates one wrong option)
+              </button>
+            </div>
+          )}
 
           {/* Feedback */}
           {feedback && (

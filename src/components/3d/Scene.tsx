@@ -1,11 +1,16 @@
-import React, { Suspense } from 'react';
-import { Canvas } from '@react-three/fiber';
-import { Sky, Environment } from '@react-three/drei';
-import { EffectComposer, Bloom, Vignette } from '@react-three/postprocessing';
+import React, { Suspense, useRef } from 'react';
+import { Canvas, useFrame } from '@react-three/fiber';
+import { Sky, Environment, Clouds, Cloud } from '@react-three/drei';
+import * as THREE from 'three';
+import { EffectComposer, Bloom, Vignette, ChromaticAberration } from '@react-three/postprocessing';
+import { BlendFunction } from 'postprocessing';
 import { CameraController } from './CameraController';
 import { ProceduralCar } from './ProceduralCar';
 import { AssistantCharacter } from './AssistantCharacter';
 import { OfficeLab } from './OfficeLab';
+import { EnvironmentalArtifacts } from './EnvironmentalArtifacts';
+import { ProceduralGrass } from './ProceduralGrass';
+import { ProceduralTree } from './ProceduralTree';
 import { useGameStore } from '../../store/gameStore';
 
 // Exterior environment — road, forecourt, building
@@ -15,7 +20,7 @@ const ExteriorEnvironment = () => {
       {/* Wide ground — green-ish grass/tarmac */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.02, 0]} receiveShadow>
         <planeGeometry args={[300, 300]} />
-        <meshStandardMaterial color="#7a9a5a" roughness={1} />
+        <meshStandardMaterial color="#8a9a6a" roughness={1} />
       </mesh>
 
       {/* Road surface */}
@@ -44,11 +49,26 @@ const ExteriorEnvironment = () => {
         <meshStandardMaterial color="#e0dbd0" roughness={0.6} metalness={0.1} />
       </mesh>
 
-      {/* Building — side wings */}
-      <mesh position={[-14, 3.5, -16]} receiveShadow castShadow>
-        <boxGeometry args={[4, 10, 8]} />
-        <meshStandardMaterial color="#d8d2c8" roughness={0.7} />
-      </mesh>
+      {/* Building — left side wing exterior shell (covers the OfficeLab) */}
+      <group position={[-15, 3.5, -18]}>
+        {/* Front wall */}
+        <mesh position={[0, 0, 6.5]} receiveShadow castShadow>
+          <boxGeometry args={[12, 10, 1]} />
+          <meshStandardMaterial color="#d8d2c8" roughness={0.7} />
+        </mesh>
+        {/* Back wall */}
+        <mesh position={[0, 0, -6.5]} receiveShadow castShadow>
+          <boxGeometry args={[12, 10, 1]} />
+          <meshStandardMaterial color="#d8d2c8" roughness={0.7} />
+        </mesh>
+        {/* Left wall */}
+        <mesh position={[-6.5, 0, 0]} receiveShadow castShadow>
+          <boxGeometry args={[1, 10, 12]} />
+          <meshStandardMaterial color="#d8d2c8" roughness={0.7} />
+        </mesh>
+        {/* No right wall; the OfficeLab's right wall (X = -9.2) forms the interior hallway partition */}
+      </group>
+
       <mesh position={[14, 3.5, -16]} receiveShadow castShadow>
         <boxGeometry args={[4, 10, 8]} />
         <meshStandardMaterial color="#d8d2c8" roughness={0.7} />
@@ -130,26 +150,15 @@ const ExteriorEnvironment = () => {
         </mesh>
       ))}
 
-      {/* Distant trees (simple cones + cylinders) */}
-      {[[-25, 20], [-28, 35], [25, 25], [28, 40], [-30, 50], [30, 50]].map(([x, z], i) => (
-        <group key={i} position={[x, 0, z]}>
-          <mesh position={[0, 1.8, 0]} castShadow>
-            <cylinderGeometry args={[0.2, 0.3, 3.6, 6]} />
-            <meshStandardMaterial color="#5a4030" roughness={0.9} />
-          </mesh>
-          <mesh position={[0, 5.2, 0]} castShadow>
-            <coneGeometry args={[2.2, 5, 8]} />
-            <meshStandardMaterial color="#2d6e28" roughness={0.95} />
-          </mesh>
-          <mesh position={[0, 3.8, 0]} castShadow>
-            <coneGeometry args={[1.6, 3.5, 7]} />
-            <meshStandardMaterial color="#348030" roughness={0.95} />
-          </mesh>
-        </group>
+      {/* Distant trees (Fluffy style) */}
+      {[[-25, 20], [-28, 35], [25, 25], [28, 40], [-30, 50], [30, 50], [-15, 60], [15, 60]].map(([x, z], i) => (
+        <ProceduralTree key={i} position={[x, 0, z]} scale={1.2 + Math.random() * 0.8} />
       ))}
     </group>
   );
 };
+
+
 
 const CarSequence = () => {
   const sequence = useGameStore(state => state.sequence);
@@ -173,28 +182,35 @@ export const Scene: React.FC<{ children: React.ReactNode }> = ({ children }) => 
         camera={{ fov: 58, near: 0.1, far: 800 }}
         gl={{ antialias: true }}
       >
-        {/* ── DAYTIME PROCEDURAL SKY (Rayleigh scattering — matches well/ folder) ── */}
+        {/* ── GOLDEN HOUR PROCEDURAL SKY ── */}
         <Sky
           distance={450000}
-          sunPosition={[80, 60, -120]}
+          sunPosition={[120, 20, -100]} // Lower sun for golden hour
           inclination={0.49}
           azimuth={0.25}
-          turbidity={1.8}
-          rayleigh={0.3}
-          mieCoefficient={0.003}
-          mieDirectionalG={0.85}
+          turbidity={4.0}
+          rayleigh={1.2}
+          mieCoefficient={0.005}
+          mieDirectionalG={0.8}
         />
 
-        {/* Image-based environment lighting — adds realistic reflections */}
+        {/* Volumetric Clouds */}
+        <Clouds material={THREE.MeshBasicMaterial} limit={400} range={400}>
+          <Cloud position={[0, 60, -150]} seed={1} bounds={[100, 20, 50]} volume={10} color="#ffdbb5" opacity={0.8} />
+          <Cloud position={[-100, 80, -250]} seed={2} bounds={[150, 30, 80]} volume={12} color="#ffeedd" opacity={0.7} />
+          <Cloud position={[120, 70, -200]} seed={3} bounds={[120, 25, 60]} volume={8} color="#ffe8d6" opacity={0.6} />
+        </Clouds>
+
+        {/* Image-based environment lighting */}
         <Environment preset="park" />
 
-        {/* ── DAYTIME LIGHTING ── */}
-        <ambientLight intensity={1.4} color="#fff8f0" />
+        {/* ── GOLDEN HOUR LIGHTING ── */}
+        <ambientLight intensity={1.8} color="#ffe8d6" />
         <directionalLight
           castShadow
-          position={[80, 140, -100]}
-          intensity={4.0}
-          color="#fff5e0"
+          position={[120, 40, -100]}
+          intensity={5.0}
+          color="#ffeedd"
           shadow-mapSize-width={2048}
           shadow-mapSize-height={2048}
           shadow-camera-far={250}
@@ -202,13 +218,15 @@ export const Scene: React.FC<{ children: React.ReactNode }> = ({ children }) => 
           shadow-camera-right={80}
           shadow-camera-top={80}
           shadow-camera-bottom={-80}
+          shadow-bias={-0.0005}
         />
         {/* Sky fill light */}
-        <hemisphereLight args={['#9bbfff', '#6a8a40', 1.0]} />
+        <hemisphereLight args={['#aabfff', '#8a7a50', 1.2]} />
 
         {/* ── SCENE COMPONENTS ── */}
         <CameraController />
         <ExteriorEnvironment />
+        <ProceduralGrass />
 
         <Suspense fallback={null}>
           <CarSequence />
@@ -220,20 +238,22 @@ export const Scene: React.FC<{ children: React.ReactNode }> = ({ children }) => 
 
         <Suspense fallback={null}>
           <OfficeLab />
+          <EnvironmentalArtifacts />
         </Suspense>
 
-        {/* ── POST-PROCESSING EFFECTS ── */}
-        <EffectComposer enableNormalPass={false}>
-          <Bloom
-            luminanceThreshold={0.8}
-            luminanceSmoothing={0.9}
-            intensity={0.6}
-            mipmapBlur
+        {/* ── POST-PROCESSING ── */}
+        <EffectComposer>
+          <Bloom 
+            luminanceThreshold={0.7} 
+            luminanceSmoothing={0.9} 
+            intensity={1.2} 
+            mipmapBlur 
           />
-          <Vignette
-            offset={0.08}
-            darkness={0.6}
+          <ChromaticAberration 
+            blendFunction={BlendFunction.NORMAL} 
+            offset={new THREE.Vector2(0.001, 0.001)} 
           />
+          <Vignette eskil={false} offset={0.3} darkness={0.6} />
         </EffectComposer>
       </Canvas>
 

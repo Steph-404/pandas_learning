@@ -1,8 +1,13 @@
 import React from 'react';
 import { useGameStore } from '../../store/gameStore';
+import { STORYLINE } from '../../data/storyline';
 
 export const HUD: React.FC = () => {
   const { score, currentStageId } = useGameStore();
+  
+  const currentStage = STORYLINE.find(s => s.id === currentStageId) || STORYLINE[0];
+  const dayMatch = currentStage?.title.match(/Stage (\d+)\./);
+  const currentDay = dayMatch ? dayMatch[1] : 1;
 
   return (
     <div style={{
@@ -23,8 +28,8 @@ export const HUD: React.FC = () => {
         borderRadius: '8px',
         border: '1px solid rgba(255,255,255,0.2)'
       }}>
-        <h3 style={{ margin: 0, fontSize: '1rem', color: '#aaa' }}>Stage</h3>
-        <p style={{ margin: '4px 0 0 0', fontSize: '1.5rem', fontWeight: 'bold' }}>{currentStageId} / 3</p>
+        <h3 style={{ margin: 0, fontSize: '1rem', color: '#aaa' }}>Day</h3>
+        <p style={{ margin: '4px 0 0 0', fontSize: '1.5rem', fontWeight: 'bold' }}>{currentDay}</p>
       </div>
       <div style={{
         background: 'rgba(0,0,0,0.5)',
