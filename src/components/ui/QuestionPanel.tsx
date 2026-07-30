@@ -9,7 +9,7 @@ export const QuestionPanel: React.FC = () => {
     selectedAnswer, setSelectedAnswer,
     feedback, setFeedback,
     score, incrementScore, nextStage,
-    setQuestionActive, setDialogueActive,
+    setQuestionActive, setDialogueActive, setSequence,
   } = useGameStore();
 
   const stage = STORYLINE.find(s => s.id === currentStageId);
@@ -21,7 +21,7 @@ export const QuestionPanel: React.FC = () => {
       anime({
         targets: containerRef.current,
         opacity: [0, 1],
-        duration: 800,
+        duration: 900,
         easing: 'easeOutExpo',
       });
     }
@@ -43,16 +43,14 @@ export const QuestionPanel: React.FC = () => {
 
   const handleNext = () => {
     if (isLastStage) {
-      useGameStore.getState().setSequence('COMPLETED');
+      // Assessment complete — escort out
       setQuestionActive(false);
+      setSequence('FAREWELL_TRANSIT');
     } else {
       nextStage();
       setQuestionActive(false);
       setDialogueActive(false);
-      // Show next dialogue after a brief pause
-      setTimeout(() => {
-        setDialogueActive(true);
-      }, 500);
+      setTimeout(() => setDialogueActive(true), 500);
     }
   };
 
@@ -71,14 +69,14 @@ export const QuestionPanel: React.FC = () => {
         padding: '20px',
       }}
     >
-      <div style={{ width: '100%', maxWidth: '820px' }}>
-        {/* Terminal header bar */}
+      <div style={{ width: '100%', maxWidth: '840px' }}>
+        {/* Terminal title bar */}
         <div style={{
-          background: 'rgba(20,40,80,0.8)',
-          border: '1px solid rgba(40,100,200,0.3)',
+          background: 'rgba(20,40,80,0.85)',
+          border: '1px solid rgba(40,100,200,0.35)',
           borderBottom: 'none',
           borderRadius: '10px 10px 0 0',
-          padding: '10px 16px',
+          padding: '10px 18px',
           display: 'flex',
           alignItems: 'center',
           gap: '8px',
@@ -86,65 +84,60 @@ export const QuestionPanel: React.FC = () => {
           <div style={{ width: 12, height: 12, borderRadius: '50%', background: '#ff5f56' }} />
           <div style={{ width: 12, height: 12, borderRadius: '50%', background: '#febc2e' }} />
           <div style={{ width: 12, height: 12, borderRadius: '50%', background: '#28c840' }} />
-          <span style={{ marginLeft: 12, fontSize: '0.75rem', color: '#4080c0', letterSpacing: '0.1em' }}>
+          <span style={{ marginLeft: 14, fontSize: '0.74rem', color: '#4080c0', letterSpacing: '0.1em' }}>
             REDROCK_LAB — pandas_assessment.py — Stage {currentStageId}/{STORYLINE.length}
           </span>
-          <span style={{ marginLeft: 'auto', fontSize: '0.7rem', color: '#2060a0' }}>
-            score: {score}
+          <span style={{ marginLeft: 'auto', fontSize: '0.72rem', color: '#2a80a0', letterSpacing: '0.05em' }}>
+            score: <strong style={{ color: '#64c8ff' }}>{score}</strong>
           </span>
         </div>
 
         {/* Terminal body */}
         <div style={{
-          background: 'rgba(4,10,22,0.98)',
-          border: '1px solid rgba(40,100,200,0.3)',
+          background: 'rgba(3,8,20,0.98)',
+          border: '1px solid rgba(40,100,200,0.35)',
           borderRadius: '0 0 10px 10px',
-          padding: '28px 32px',
-          boxShadow: '0 30px 80px rgba(0,0,20,0.8)',
+          padding: '28px 34px',
+          boxShadow: '0 30px 80px rgba(0,0,20,0.85)',
         }}>
-          {/* Breadcrumb / context */}
-          <div style={{ fontSize: '0.7rem', color: '#2060a0', marginBottom: '16px', letterSpacing: '0.05em' }}>
+          {/* Prompt breadcrumb */}
+          <div style={{ fontSize: '0.7rem', color: '#2060a0', marginBottom: '18px', letterSpacing: '0.04em' }}>
             <span style={{ color: '#1a88ff' }}>{'>>> '}</span>
-            <span style={{ color: '#4aaa44' }}>{stage.title.toLowerCase().replace(/\s/g, '_')}</span>
+            <span style={{ color: '#4aaa44' }}>{stage.title.toLowerCase().replace(/\s+/g, '_')}</span>
             <span style={{ color: '#888' }}>.assess()</span>
+            <span style={{ color: '#555', marginLeft: 10 }}># {stage.title}</span>
           </div>
 
-          {/* Question */}
+          {/* Question box */}
           <div style={{
-            background: 'rgba(10,30,70,0.6)',
-            border: '1px solid rgba(30,80,180,0.25)',
+            background: 'rgba(10,30,70,0.55)',
+            border: '1px solid rgba(30,80,180,0.3)',
             borderLeft: '3px solid #1a88ff',
             borderRadius: '4px',
             padding: '16px 20px',
-            marginBottom: '24px',
+            marginBottom: '22px',
           }}>
-            <span style={{ color: '#4aaa44', fontSize: '0.75rem', display: 'block', marginBottom: 8 }}>
+            <span style={{ color: '#4aaa44', fontSize: '0.72rem', display: 'block', marginBottom: 8, letterSpacing: '0.06em' }}>
               # QUESTION
             </span>
-            <p style={{ color: '#d0e8ff', fontSize: '1.0rem', lineHeight: 1.65, margin: 0 }}>
+            <p style={{ color: '#d0e8ff', fontSize: '1.0rem', lineHeight: 1.7, margin: 0 }}>
               {stage.question.text}
             </p>
           </div>
 
-          {/* Options */}
+          {/* Answer options */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '20px' }}>
             {stage.question.options.map((option) => {
               const isSelected = selectedAnswer === option.id;
               const isCorrect = option.id === stage.question.correctOptionId;
-              let bgColor = 'rgba(10,25,60,0.7)';
-              let borderColor = 'rgba(40,100,200,0.2)';
-              let textColor = '#90aad0';
+
+              let bg = 'rgba(10,25,60,0.65)';
+              let border = 'rgba(40,100,200,0.2)';
+              let color = '#90aad0';
 
               if (selectedAnswer) {
-                if (isCorrect) {
-                  bgColor = 'rgba(10,60,30,0.7)';
-                  borderColor = 'rgba(40,200,80,0.5)';
-                  textColor = '#88eea0';
-                } else if (isSelected) {
-                  bgColor = 'rgba(60,10,10,0.7)';
-                  borderColor = 'rgba(200,40,40,0.5)';
-                  textColor = '#ee8888';
-                }
+                if (isCorrect) { bg = 'rgba(10,60,25,0.75)'; border = 'rgba(40,200,80,0.5)'; color = '#88eea8'; }
+                else if (isSelected) { bg = 'rgba(60,10,10,0.75)'; border = 'rgba(200,40,40,0.5)'; color = '#ee8888'; }
               }
 
               return (
@@ -153,38 +146,40 @@ export const QuestionPanel: React.FC = () => {
                   onClick={() => handleAnswer(option.id)}
                   disabled={!!selectedAnswer}
                   style={{
-                    background: bgColor,
-                    border: `1px solid ${borderColor}`,
+                    background: bg,
+                    border: `1px solid ${border}`,
                     borderRadius: '6px',
-                    padding: '14px 18px',
+                    padding: '13px 18px',
                     textAlign: 'left',
                     cursor: selectedAnswer ? 'default' : 'pointer',
                     display: 'flex',
                     gap: '14px',
                     alignItems: 'flex-start',
-                    transition: 'all 0.25s ease',
-                    color: textColor,
+                    transition: 'all 0.22s ease',
+                    color,
                     fontFamily: 'inherit',
-                    fontSize: '0.9rem',
+                    fontSize: '0.88rem',
                     lineHeight: '1.55',
                   }}
                   onMouseEnter={e => {
                     if (!selectedAnswer) {
-                      e.currentTarget.style.borderColor = 'rgba(100,180,255,0.5)';
-                      e.currentTarget.style.background = 'rgba(16,40,90,0.8)';
+                      e.currentTarget.style.borderColor = 'rgba(100,180,255,0.55)';
+                      e.currentTarget.style.background = 'rgba(16,40,90,0.85)';
                     }
                   }}
                   onMouseLeave={e => {
                     if (!selectedAnswer) {
                       e.currentTarget.style.borderColor = 'rgba(40,100,200,0.2)';
-                      e.currentTarget.style.background = 'rgba(10,25,60,0.7)';
+                      e.currentTarget.style.background = 'rgba(10,25,60,0.65)';
                     }
                   }}
                 >
                   <span style={{
-                    fontWeight: 700, fontSize: '0.78rem',
+                    fontWeight: 700,
+                    fontSize: '0.78rem',
                     color: selectedAnswer ? (isCorrect ? '#44ee88' : isSelected ? '#ee4444' : '#2060a0') : '#1a88ff',
-                    minWidth: 20, marginTop: 2,
+                    minWidth: 22,
+                    marginTop: 2,
                   }}>
                     {option.id.toUpperCase()}.
                   </span>
@@ -197,21 +192,20 @@ export const QuestionPanel: React.FC = () => {
           {/* Feedback */}
           {feedback && (
             <div style={{
-              background: feedback.startsWith('✓')
-                ? 'rgba(10,50,20,0.8)' : 'rgba(50,10,10,0.8)',
-              border: `1px solid ${feedback.startsWith('✓') ? 'rgba(40,180,80,0.4)' : 'rgba(180,40,40,0.4)'}`,
+              background: feedback.startsWith('✓') ? 'rgba(10,50,20,0.8)' : 'rgba(50,10,10,0.8)',
+              border: `1px solid ${feedback.startsWith('✓') ? 'rgba(40,180,80,0.45)' : 'rgba(180,40,40,0.45)'}`,
               borderRadius: '6px',
               padding: '14px 18px',
-              fontSize: '0.88rem',
-              color: feedback.startsWith('✓') ? '#88eea0' : '#ee9090',
-              lineHeight: 1.55,
-              marginBottom: '16px',
+              fontSize: '0.87rem',
+              color: feedback.startsWith('✓') ? '#88eeaa' : '#ee9090',
+              lineHeight: 1.6,
+              marginBottom: '18px',
             }}>
               {feedback}
             </div>
           )}
 
-          {/* Next button */}
+          {/* Next / Finish button */}
           {selectedAnswer && (
             <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
               <button
@@ -219,8 +213,8 @@ export const QuestionPanel: React.FC = () => {
                 style={{
                   background: 'linear-gradient(135deg, #1a4a8a, #0d3060)',
                   color: '#c8e0ff',
-                  border: '1px solid rgba(60,140,255,0.4)',
-                  padding: '11px 32px',
+                  border: '1px solid rgba(60,140,255,0.45)',
+                  padding: '11px 34px',
                   borderRadius: '6px',
                   cursor: 'pointer',
                   fontWeight: 700,
@@ -228,7 +222,10 @@ export const QuestionPanel: React.FC = () => {
                   letterSpacing: '0.08em',
                   textTransform: 'uppercase',
                   fontFamily: 'inherit',
+                  transition: 'all 0.2s ease',
                 }}
+                onMouseEnter={e => e.currentTarget.style.borderColor = 'rgba(100,200,255,0.8)'}
+                onMouseLeave={e => e.currentTarget.style.borderColor = 'rgba(60,140,255,0.45)'}
               >
                 {isLastStage ? '◆ Complete Assessment' : '→ Next Stage'}
               </button>

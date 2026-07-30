@@ -1,6 +1,6 @@
 import React, { Suspense } from 'react';
 import { Canvas } from '@react-three/fiber';
-import { Stars } from '@react-three/drei';
+import { Sky } from '@react-three/drei';
 import { CameraController } from './CameraController';
 import { ProceduralCar } from './ProceduralCar';
 import { AssistantCharacter } from './AssistantCharacter';
@@ -11,103 +11,114 @@ import { useGameStore } from '../../store/gameStore';
 const ExteriorEnvironment = () => {
   return (
     <group>
-      {/* Road / ground */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.02, 25]} receiveShadow>
-        <planeGeometry args={[12, 70]} />
-        <meshStandardMaterial color="#0a0e14" roughness={0.95} />
+      {/* Wide ground plane */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.02, 0]} receiveShadow>
+        <planeGeometry args={[200, 200]} />
+        <meshStandardMaterial color="#8a9e6a" roughness={1} />
+      </mesh>
+
+      {/* Road surface */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.0, 25]} receiveShadow>
+        <planeGeometry args={[10, 80]} />
+        <meshStandardMaterial color="#3a3a3a" roughness={0.95} />
       </mesh>
 
       {/* Road center-line markings */}
-      {Array.from({ length: 12 }).map((_, i) => (
-        <mesh key={i} rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.01, 5 + i * 5]}>
-          <planeGeometry args={[0.12, 2.0]} />
-          <meshStandardMaterial color="#eecc44" emissive="#eecc44" emissiveIntensity={0.6} />
+      {Array.from({ length: 14 }).map((_, i) => (
+        <mesh key={i} rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.01, 55 - i * 5]}>
+          <planeGeometry args={[0.14, 2.2]} />
+          <meshStandardMaterial color="#e8d040" />
         </mesh>
       ))}
 
-      {/* Wide ground plane beyond road */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.05, 0]} receiveShadow>
-        <planeGeometry args={[120, 120]} />
-        <meshStandardMaterial color="#080c12" roughness={1} />
-      </mesh>
-
-      {/* Pavement / sidewalk leading to building */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.01, -6]} receiveShadow>
-        <planeGeometry args={[10, 20]} />
-        <meshStandardMaterial color="#101822" roughness={0.9} />
+      {/* Pavement / forecourt in front of building */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.01, -8]} receiveShadow>
+        <planeGeometry args={[20, 24]} />
+        <meshStandardMaterial color="#c8c0b0" roughness={0.85} />
       </mesh>
 
       {/* Building facade */}
-      <mesh position={[0, 3, -17]} receiveShadow castShadow>
-        <boxGeometry args={[16, 10, 0.4]} />
-        <meshStandardMaterial color="#0a1520" metalness={0.3} roughness={0.7} />
+      <mesh position={[0, 4.5, -18]} receiveShadow castShadow>
+        <boxGeometry args={[20, 12, 0.5]} />
+        <meshStandardMaterial color="#e0dbd0" roughness={0.6} metalness={0.1} />
       </mesh>
 
-      {/* Building window grid — lit offices */}
-      {[[-4, 5], [0, 5], [4, 5], [-4, 3], [0, 3], [4, 3], [-4, 1], [0, 1], [4, 1]].map(([x, y], i) => (
-        <mesh key={i} position={[x, y, -16.7]}>
-          <boxGeometry args={[1.4, 1.0, 0.05]} />
-          <meshStandardMaterial
-            color="#102040"
-            emissive={i % 3 === 0 ? '#3060a0' : i % 3 === 1 ? '#204060' : '#1a88ff'}
-            emissiveIntensity={0.8 + (i % 2) * 0.4}
-          />
-        </mesh>
+      {/* Building window grid */}
+      {[
+        [-5, 7], [0, 7], [5, 7],
+        [-5, 5], [0, 5], [5, 5],
+        [-5, 3], [0, 3], [5, 3],
+      ].map(([x, y], i) => (
+        <group key={i} position={[x, y, -17.6]}>
+          {/* Window frame */}
+          <mesh>
+            <boxGeometry args={[1.6, 1.1, 0.08]} />
+            <meshStandardMaterial color="#4a4a4a" metalness={0.5} roughness={0.5} />
+          </mesh>
+          {/* Window glass */}
+          <mesh position={[0, 0, 0.05]}>
+            <boxGeometry args={[1.4, 0.95, 0.04]} />
+            <meshStandardMaterial color="#90c4d4" transparent opacity={0.6} metalness={0.3} roughness={0} />
+          </mesh>
+        </group>
       ))}
 
-      {/* Entrance overhang */}
-      <mesh position={[0, 2.6, -12.5]} castShadow>
-        <boxGeometry args={[6, 0.2, 4]} />
-        <meshStandardMaterial color="#0f1d30" metalness={0.5} roughness={0.5} />
+      {/* Building sign */}
+      <mesh position={[0, 9.2, -17.6]}>
+        <boxGeometry args={[8, 1.0, 0.1]} />
+        <meshStandardMaterial color="#1a3a6a" />
       </mesh>
-      {/* Overhang support pillars */}
-      {[-2.6, 2.6].map((x, i) => (
-        <mesh key={i} position={[x, 1.2, -12.5]} castShadow>
-          <boxGeometry args={[0.18, 2.4, 0.18]} />
-          <meshStandardMaterial color="#0a1520" metalness={0.6} roughness={0.4} />
+
+      {/* Entrance overhang */}
+      <mesh position={[0, 3.0, -13]} castShadow receiveShadow>
+        <boxGeometry args={[7, 0.25, 5]} />
+        <meshStandardMaterial color="#c8c0b4" roughness={0.7} metalness={0.1} />
+      </mesh>
+
+      {/* Support pillars */}
+      {[-3, 3].map((x, i) => (
+        <mesh key={i} position={[x, 1.5, -13]} castShadow>
+          <boxGeometry args={[0.22, 3.0, 0.22]} />
+          <meshStandardMaterial color="#b8b0a4" roughness={0.7} />
         </mesh>
       ))}
 
       {/* Entrance door frame */}
-      <mesh position={[0, 1.2, -16.6]}>
-        <boxGeometry args={[2.4, 2.8, 0.12]} />
-        <meshStandardMaterial color="#0d1e32" metalness={0.4} roughness={0.6} />
+      <mesh position={[0, 1.4, -17.6]}>
+        <boxGeometry args={[2.8, 3.2, 0.15]} />
+        <meshStandardMaterial color="#3a3a3a" metalness={0.5} roughness={0.5} />
       </mesh>
       {/* Door glass */}
-      <mesh position={[0, 1.15, -16.5]}>
-        <boxGeometry args={[2.0, 2.4, 0.04]} />
-        <meshStandardMaterial color="#4488cc" transparent opacity={0.35} metalness={0.2} roughness={0} />
+      <mesh position={[0, 1.35, -17.5]}>
+        <boxGeometry args={[2.4, 2.8, 0.05]} />
+        <meshStandardMaterial color="#90c4d4" transparent opacity={0.4} metalness={0.3} roughness={0} />
       </mesh>
 
-      {/* Entrance ground lights */}
-      <pointLight position={[-2, 0.5, -14]} color="#aaccff" intensity={1.5} distance={6} />
-      <pointLight position={[2, 0.5, -14]} color="#aaccff" intensity={1.5} distance={6} />
-
       {/* Street lamps */}
-      {[[-5, 15], [5, 15], [-5, 30], [5, 30]].map(([x, z], i) => (
+      {[[-5, 20], [5, 20], [-5, 35], [5, 35], [-5, 50], [5, 50]].map(([x, z], i) => (
         <group key={i} position={[x, 0, z]}>
-          <mesh position={[0, 2.2, 0]} castShadow>
-            <cylinderGeometry args={[0.06, 0.08, 4.4, 6]} />
-            <meshStandardMaterial color="#1a2a3a" roughness={0.8} />
+          <mesh position={[0, 2.5, 0]} castShadow>
+            <cylinderGeometry args={[0.06, 0.10, 5, 6]} />
+            <meshStandardMaterial color="#888" roughness={0.7} metalness={0.3} />
           </mesh>
-          <mesh position={[0, 4.5, 0]}>
-            <boxGeometry args={[0.4, 0.15, 0.4]} />
-            <meshStandardMaterial color="#ffffcc" emissive="#ffffcc" emissiveIntensity={2} />
+          <mesh position={[0.5, 5.0, 0]}>
+            <boxGeometry args={[0.5, 0.18, 0.5]} />
+            <meshStandardMaterial color="#aaa" roughness={0.5} />
           </mesh>
-          <pointLight position={[0, 4.4, 0]} color="#fff5aa" intensity={2} distance={10} />
         </group>
       ))}
 
-      {/* Distant city glow on horizon */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.1, -80]}>
-        <planeGeometry args={[200, 20]} />
-        <meshStandardMaterial color="#101828" emissive="#1a3060" emissiveIntensity={0.3} />
-      </mesh>
+      {/* Grass patches */}
+      {[[-8, -5], [8, -5], [-12, 10], [12, 10]].map(([x, z], i) => (
+        <mesh key={i} rotation={[-Math.PI / 2, 0, 0]} position={[x, 0.01, z]}>
+          <planeGeometry args={[5, 8]} />
+          <meshStandardMaterial color="#5a8a3a" roughness={1} />
+        </mesh>
+      ))}
     </group>
   );
 };
 
-// Handles the car arriving and triggering the alighting sequence
 const CarSequence = () => {
   const sequence = useGameStore(state => state.sequence);
   const setSequence = useGameStore(state => state.setSequence);
@@ -116,56 +127,67 @@ const CarSequence = () => {
     setTimeout(() => setSequence('ALIGHTING'), 800);
   };
 
-  if (sequence === 'COMPLETED') return null;
+  if (sequence === 'FAREWELL_TRANSIT' || sequence === 'FAREWELL' || sequence === 'COMPLETED') {
+    return null;
+  }
 
   return <ProceduralCar onArrived={handleArrived} />;
 };
 
 export const Scene: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   return (
-    <div style={{ width: '100vw', height: '100vh', position: 'relative', backgroundColor: '#000' }}>
+    <div style={{ width: '100vw', height: '100vh', position: 'relative', backgroundColor: '#87CEEB' }}>
       <Canvas
         shadows
-        camera={{ fov: 60, near: 0.1, far: 500 }}
+        camera={{ fov: 58, near: 0.1, far: 600 }}
         gl={{ antialias: true }}
       >
-        <color attach="background" args={['#040810']} />
-        <Stars radius={120} depth={60} count={4000} factor={4} saturation={0} fade speed={0.5} />
+        {/* ── DAYTIME SKY (procedural — like the well folder) ── */}
+        <Sky
+          distance={450000}
+          sunPosition={[100, 80, -100]}
+          inclination={0.49}
+          azimuth={0.25}
+          turbidity={2}
+          rayleigh={0.4}
+          mieCoefficient={0.003}
+          mieDirectionalG={0.8}
+        />
 
-        {/* Ambient + directional lighting */}
-        <ambientLight intensity={0.08} color="#2040a0" />
+        {/* ── DAYTIME LIGHTING ── */}
+        <ambientLight intensity={1.2} color="#fff8f0" />
         <directionalLight
           castShadow
-          position={[8, 14, 10]}
-          intensity={0.4}
-          color="#7090d0"
-          shadow-mapSize-width={1024}
-          shadow-mapSize-height={1024}
-          shadow-camera-far={120}
-          shadow-camera-left={-30}
-          shadow-camera-right={30}
-          shadow-camera-top={30}
-          shadow-camera-bottom={-30}
+          position={[60, 120, 40]}
+          intensity={3.5}
+          color="#fff5e0"
+          shadow-mapSize-width={2048}
+          shadow-mapSize-height={2048}
+          shadow-camera-far={200}
+          shadow-camera-left={-60}
+          shadow-camera-right={60}
+          shadow-camera-top={60}
+          shadow-camera-bottom={-60}
         />
+        {/* Soft sky fill light from above */}
+        <hemisphereLight args={['#9bbfff', '#6a8a50', 0.8]} />
 
         <CameraController />
         <ExteriorEnvironment />
 
-        {/* Car */}
         <Suspense fallback={null}>
           <CarSequence />
         </Suspense>
 
-        {/* Assistant — visible from exterior */}
         <Suspense fallback={null}>
           <AssistantCharacter />
         </Suspense>
 
-        {/* Office Lab — positioned behind entrance */}
         <Suspense fallback={null}>
           <OfficeLab />
         </Suspense>
       </Canvas>
+
       {children}
     </div>
   );

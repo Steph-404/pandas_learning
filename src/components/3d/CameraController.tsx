@@ -14,20 +14,27 @@ export const CameraController = () => {
   const setQuestionActive = useGameStore(state => state.setQuestionActive);
   const animatingRef = useRef(false);
 
-  // Waypoints: pos = camera position, lookAt = where camera looks
-  const WAYPOINTS: Record<string, { pos: [number,number,number]; lookAt: [number,number,number]; duration: number }> = {
-    // Exterior — looking at building entrance while car drives up
-    CAR_ARRIVING: { pos: [0, 1.5, 50], lookAt: [0, 1.5, 20], duration: 0 },
-    // Walk forward from where car stopped, face the assistant
-    ALIGHTING:    { pos: [0, 1.5, 8], lookAt: [0, 1.5, 0], duration: 5000 },
-    // Settled, looking at assistant — dialogue starts
-    GREETING:     { pos: [0, 1.5, 8], lookAt: [0, 1.5, 0], duration: 0 },
-    // Walk through entrance toward office
-    TRANSITION_LAB: { pos: [0, 1.5, -10], lookAt: [0, 1.0, -18], duration: 4000 },
-    // Inside lab, looking at desk from a step back
-    IN_LAB:       { pos: [0, 1.5, -10], lookAt: [0, 1.5, -22], duration: 0 },
-    // Zoom into monitor — screen fills view
-    APPROACHING_SCREEN: { pos: [0, 1.62, -22], lookAt: [0, 1.62, -30], duration: 3500 },
+  const WAYPOINTS: Record<string, {
+    pos: [number, number, number];
+    lookAt: [number, number, number];
+    duration: number;
+  }> = {
+    // Exterior — camera behind/beside car watching building approach
+    CAR_ARRIVING:      { pos: [0, 1.5, 50],  lookAt: [0, 1.5, 22],   duration: 0 },
+    // Walk forward from car stop toward assistant at entrance
+    ALIGHTING:         { pos: [0, 1.5, 8],   lookAt: [0, 1.6, -12],  duration: 5000 },
+    // Face-to-face with Dr. Nwosu — dialogue starts
+    GREETING:          { pos: [0, 1.5, 8],   lookAt: [0, 1.6, -12],  duration: 0 },
+    // Walk through entrance into the lab office
+    TRANSITION_LAB:    { pos: [0, 1.5, -10], lookAt: [0, 1.2, -28],  duration: 4000 },
+    // Inside lab, settled at desk distance
+    IN_LAB:            { pos: [0, 1.5, -10], lookAt: [0, 1.5, -28],  duration: 0 },
+    // Zoom into monitor
+    APPROACHING_SCREEN:{ pos: [0, 1.62, -22],lookAt: [0, 1.62, -35], duration: 3000 },
+    // Walk back out from desk toward entrance (farewell escort)
+    FAREWELL_TRANSIT:  { pos: [0, 1.5, 5],   lookAt: [0, 1.6, -12],  duration: 4000 },
+    // Outside at entrance facing assistant for farewell
+    FAREWELL:          { pos: [0, 1.5, 5],   lookAt: [0, 1.6, -12],  duration: 0 },
   };
 
   useEffect(() => {
@@ -39,11 +46,10 @@ export const CameraController = () => {
       currentLookAt.set(...target.lookAt);
       camera.lookAt(currentLookAt);
 
-      if (sequence === 'GREETING') {
-        setDialogueActive(true);
-      }
+      if (sequence === 'GREETING') setDialogueActive(true);
+      if (sequence === 'FAREWELL')  setDialogueActive(true);
+
       if (sequence === 'IN_LAB') {
-        // Short pause then zoom to screen
         setTimeout(() => setSequence('APPROACHING_SCREEN'), 1800);
       }
       return;
@@ -68,15 +74,10 @@ export const CameraController = () => {
       },
       complete: () => {
         animatingRef.current = false;
-        if (sequence === 'ALIGHTING') {
-          setSequence('GREETING');
-        }
-        if (sequence === 'TRANSITION_LAB') {
-          setSequence('IN_LAB');
-        }
-        if (sequence === 'APPROACHING_SCREEN') {
-          setQuestionActive(true);
-        }
+        if (sequence === 'ALIGHTING')         setSequence('GREETING');
+        if (sequence === 'TRANSITION_LAB')    setSequence('IN_LAB');
+        if (sequence === 'APPROACHING_SCREEN') setQuestionActive(true);
+        if (sequence === 'FAREWELL_TRANSIT')  setSequence('FAREWELL');
       },
     });
   }, [sequence]);

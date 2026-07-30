@@ -16,63 +16,84 @@ export type Stage = {
 export const STORYLINE: Stage[] = [
   {
     id: 1,
-    title: "Stage 1: The Investigation",
+    title: "The Tool Problem",
     dialogue: [
-      "Welcome to the Redrock Field Station.",
-      "Our team is prepping the toolkit to analyze a massive dataset of 50,000 retail transactions.",
-      "One of the junior researchers just said: 'I've loaded the 50,000-row dataset into Excel, but it keeps freezing.'",
-      "We need a better tool for this scale."
+      "Welcome! I'm Dr. Amara Nwosu. Glad you made it to Redrock Field Station.",
+      "We have a situation. A junior researcher on the team just pulled in a dataset — 50,000 retail transactions — and loaded it straight into Excel.",
+      "They've been waiting 10 minutes. It keeps freezing, crashing, and the formulas won't calculate.",
+      "They're asking you directly: why on earth should they switch to pandas instead?",
     ],
     question: {
       id: "q1",
-      text: "Why is pandas a better choice than Excel for this task?",
+      text: "The junior researcher is frustrated. In your own words, what's the best explanation for why pandas is the right tool here compared to Excel?",
       options: [
-        { id: "a", text: "Pandas provides better default graphs than Excel." },
-        { id: "b", text: "Excel struggles with large datasets and can freeze on 50,000+ rows, while pandas can process them in fractions of a second." },
-        { id: "c", text: "Pandas uses less memory by storing data in the cloud." }
+        { id: "a", text: "Pandas has better charts and visualisations than Excel does by default." },
+        { id: "b", text: "Excel struggles badly with datasets over ~10,000 rows — it loads into RAM cell by cell. Pandas uses NumPy arrays under the hood, so it can filter, sort and compute 50,000+ rows in milliseconds." },
+        { id: "c", text: "Pandas stores data in the cloud so it never slows your machine down." },
       ],
       correctOptionId: "b",
-      explanation: "Correct! Excel can freeze on large files, but pandas handles 50,000+ rows effortlessly and extremely fast."
-    }
+      explanation: "Exactly right. Excel's row-by-row model simply was not built for this scale. Pandas processes the entire column as a vectorised NumPy array — no looping, no freezing.",
+    },
   },
   {
     id: 2,
-    title: "Stage 2: Data Cleaning",
+    title: "First Look at the Data",
     dialogue: [
-      "Great choice! The data is now loaded into a pandas DataFrame.",
-      "However, we've noticed a problem. The 'date' column is currently stored as plain text.",
-      "We need to clean this up before analysis."
+      "Great explanation! The researcher is now converted. They've loaded the CSV into a DataFrame.",
+      "But before we do anything — filter, clean, analyse — we always take a first look.",
+      "The researcher turns to you again: 'OK it's loaded. What's the very first thing I should do?'",
     ],
     question: {
       id: "q2",
-      text: "Why is it critical to convert this text into a datetime64 object using pd.to_datetime()?",
+      text: "The DataFrame is freshly loaded. What is the standard first command a data scientist runs to get a quick snapshot of the data — shape, column names, dtypes, and null counts all at once?",
       options: [
-        { id: "a", text: "It allows us to perform date arithmetic, extract the day of the week, and sort in true time order." },
-        { id: "b", text: "It compresses the text to save memory." },
-        { id: "c", text: "It automatically translates dates into different time zones." }
+        { id: "a", text: "df.head() — to see the first 5 rows." },
+        { id: "b", text: "df.describe() — to get summary statistics for numeric columns." },
+        { id: "c", text: "df.info() — to see column names, non-null counts, and dtypes in a single output." },
       ],
-      correctOptionId: "a",
-      explanation: "Correct! Converting to datetime64 allows pandas to understand the data chronologically."
-    }
+      correctOptionId: "c",
+      explanation: "df.info() is the gold standard first call. It shows you column names, how many values are non-null (revealing missing data instantly), and the dtype of every column — all in one place. df.head() and df.describe() are useful too, but info() gives the structural overview first.",
+    },
   },
   {
     id: 3,
-    title: "Stage 3: Feature Engineering",
+    title: "Fixing the Date Column",
     dialogue: [
-      "The dates are fixed! Now, the final step for our report.",
-      "We need to calculate a new 'profit' column based on the existing 'revenue' and 'cost' columns.",
-      "There are several ways to do this in pandas, but some are much faster than others."
+      "The info() output confirms a problem — the 'transaction_date' column has dtype 'object', not datetime.",
+      "That means pandas is treating dates as plain text strings. You can't sort by time, extract weekdays, or do date arithmetic.",
+      "The researcher asks: 'How do I fix this so pandas actually understands it's a date?'",
     ],
     question: {
       id: "q3",
-      text: "According to pandas best practices, what is the fastest and clearest way to create this new column?",
+      text: "The 'transaction_date' column is currently a string. What is the correct pandas method to convert it to a proper datetime type so you can do time-based operations?",
       options: [
-        { id: "a", text: "Use df.apply() with a custom lambda function." },
-        { id: "b", text: "Write a standard Python for loop to iterate over each row." },
-        { id: "c", text: "Use direct column math: df['profit'] = df['revenue'] - df['cost']." }
+        { id: "a", text: "df['transaction_date'] = df['transaction_date'].astype('date')" },
+        { id: "b", text: "df['transaction_date'] = pd.to_datetime(df['transaction_date'])" },
+        { id: "c", text: "df['transaction_date'] = df['transaction_date'].convert_dates()" },
       ],
-      correctOptionId: "c",
-      explanation: "Correct! Direct column math (vectorized operations) is the fastest and clearest method in pandas. Avoid loops and apply() unless absolutely necessary."
-    }
-  }
+      correctOptionId: "b",
+      explanation: "pd.to_datetime() is the correct function. It's smart enough to parse most date string formats automatically. After this, pandas knows this column is time-based, and you can call .dt.day_name(), .dt.month, sort chronologically, and much more.",
+    },
+  },
+  {
+    id: 4,
+    title: "Engineering a New Feature",
+    dialogue: [
+      "Brilliant. Dates are now fixed. The team lead has a final request before you leave.",
+      "They need a new 'profit' column. The dataset already has 'revenue' and 'cost' columns.",
+      "A colleague suggests writing a Python for-loop to go row by row. You immediately know that's the wrong call.",
+      "How do you explain the better approach — and actually do it?",
+    ],
+    question: {
+      id: "q4",
+      text: "Your colleague wants to use a for-loop to compute profit row by row. What is the correct, vectorised pandas approach — and why is it dramatically faster?",
+      options: [
+        { id: "a", text: "df['profit'] = df.apply(lambda row: row['revenue'] - row['cost'], axis=1)  — apply() is the fastest method in pandas." },
+        { id: "b", text: "df['profit'] = df['revenue'] - df['cost']  — direct column arithmetic is vectorised via NumPy and processes all 50k rows simultaneously, not one at a time." },
+        { id: "c", text: "for i in range(len(df)):  df.loc[i,'profit'] = df.loc[i,'revenue'] - df.loc[i,'cost']  — loops give you the most control." },
+      ],
+      correctOptionId: "b",
+      explanation: "Direct column arithmetic like df['revenue'] - df['cost'] is vectorised — NumPy operates on the entire array in compiled C code at once. A for-loop or apply() is 10x–100x slower on large datasets. Always prefer vectorised operations.",
+    },
+  },
 ];

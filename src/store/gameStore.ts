@@ -7,6 +7,8 @@ export type GameSequence =
   | 'TRANSITION_LAB'
   | 'IN_LAB'
   | 'APPROACHING_SCREEN'
+  | 'FAREWELL_TRANSIT'
+  | 'FAREWELL'
   | 'COMPLETED';
 
 interface GameState {

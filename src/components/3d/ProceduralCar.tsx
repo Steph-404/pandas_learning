@@ -16,9 +16,10 @@ export const ProceduralCar = ({ onArrived }: ProceduralCarProps) => {
 
   const sequence = useGameStore(state => state.sequence);
   const arrivedRef = useRef(false);
+  // Car starts far on +Z and drives toward -Z (toward building at z:-17)
   const startZ = 70;
-  const stopZ = 20;
-  const speed = useRef(0.18); // starts fast, decelerates
+  const stopZ = 22;
+  const speed = useRef(0.22);
 
   useFrame(() => {
     if (!groupRef.current) return;
@@ -27,10 +28,9 @@ export const ProceduralCar = ({ onArrived }: ProceduralCarProps) => {
 
     const currentZ = groupRef.current.position.z;
     const distLeft = currentZ - stopZ;
-    
-    // Decelerate as we approach
-    if (distLeft < 18) {
-      speed.current = Math.max(0.008, distLeft * 0.012);
+
+    if (distLeft < 20) {
+      speed.current = Math.max(0.006, distLeft * 0.011);
     }
 
     if (distLeft <= 0.05) {
@@ -42,25 +42,25 @@ export const ProceduralCar = ({ onArrived }: ProceduralCarProps) => {
 
     groupRef.current.position.z -= speed.current;
 
-    // Spin wheels proportional to speed
     const spin = speed.current * 0.6;
     [wheelFLRef, wheelFRRef, wheelBLRef, wheelBRRef].forEach(ref => {
       if (ref.current) ref.current.rotation.x -= spin;
     });
   });
 
-  // Car body colors
   const bodyColor = '#1a2a3a';
   const glassColor = '#8ab4d4';
   const wheelColor = '#1a1a1a';
   const rimColor = '#aaaaaa';
-  const lightColor = '#ffffee';
+  const headlightColor = '#ffffee';
+  const taillightColor = '#ff2200';
 
   return (
-    <group ref={groupRef} position={[0, 0, startZ]} rotation={[0, Math.PI, 0]}>
-      {/* Headlights */}
-      <pointLight position={[-0.7, 0.5, -2.2]} color="#fff5cc" intensity={3} distance={18} castShadow />
-      <pointLight position={[0.7, 0.5, -2.2]} color="#fff5cc" intensity={3} distance={18} castShadow />
+    // NO 180° rotation — car faces -Z (toward building) as it drives in
+    <group ref={groupRef} position={[0, 0, startZ]}>
+      {/* Headlights beam (front = -Z side) */}
+      <pointLight position={[-0.7, 0.5, -2.2]} color="#fff5cc" intensity={4} distance={22} castShadow />
+      <pointLight position={[0.7, 0.5, -2.2]} color="#fff5cc" intensity={4} distance={22} castShadow />
 
       {/* Main body */}
       <mesh position={[0, 0.55, 0]} castShadow>
@@ -74,13 +74,13 @@ export const ProceduralCar = ({ onArrived }: ProceduralCarProps) => {
         <meshStandardMaterial color={bodyColor} metalness={0.7} roughness={0.3} />
       </mesh>
 
-      {/* Windshield */}
+      {/* Windshield — front (-Z) */}
       <mesh position={[0, 1.0, -0.96]}>
         <boxGeometry args={[1.6, 0.44, 0.05]} />
         <meshStandardMaterial color={glassColor} transparent opacity={0.55} metalness={0.1} roughness={0} />
       </mesh>
 
-      {/* Rear window */}
+      {/* Rear window — back (+Z) */}
       <mesh position={[0, 1.0, 1.22]}>
         <boxGeometry args={[1.6, 0.44, 0.05]} />
         <meshStandardMaterial color={glassColor} transparent opacity={0.45} metalness={0.1} roughness={0} />
@@ -100,19 +100,19 @@ export const ProceduralCar = ({ onArrived }: ProceduralCarProps) => {
         <meshStandardMaterial color={bodyColor} metalness={0.7} roughness={0.3} />
       </mesh>
 
-      {/* Headlight clusters */}
+      {/* ── HEADLIGHTS (front, -Z side) ── white/yellow */}
       {[-0.6, 0.6].map((x, i) => (
         <mesh key={i} position={[x, 0.55, -2.12]}>
           <boxGeometry args={[0.4, 0.18, 0.05]} />
-          <meshStandardMaterial color={lightColor} emissive={lightColor} emissiveIntensity={2} />
+          <meshStandardMaterial color={headlightColor} emissive={headlightColor} emissiveIntensity={2.5} />
         </mesh>
       ))}
 
-      {/* Tail lights */}
+      {/* ── TAIL LIGHTS (rear, +Z side) ── red */}
       {[-0.6, 0.6].map((x, i) => (
         <mesh key={i} position={[x, 0.55, 2.12]}>
           <boxGeometry args={[0.4, 0.18, 0.05]} />
-          <meshStandardMaterial color="#ff2200" emissive="#ff2200" emissiveIntensity={1.5} />
+          <meshStandardMaterial color={taillightColor} emissive={taillightColor} emissiveIntensity={2.0} />
         </mesh>
       ))}
 
@@ -128,7 +128,7 @@ export const ProceduralCar = ({ onArrived }: ProceduralCarProps) => {
         <meshStandardMaterial color="#555" metalness={0.8} roughness={0.4} />
       </mesh>
 
-      {/* Wheels — FL */}
+      {/* Wheels FL */}
       <group position={[-0.98, 0.28, -1.3]}>
         <mesh ref={wheelFLRef} rotation={[0, 0, Math.PI / 2]}>
           <cylinderGeometry args={[0.3, 0.3, 0.22, 16]} />
@@ -140,7 +140,7 @@ export const ProceduralCar = ({ onArrived }: ProceduralCarProps) => {
         </mesh>
       </group>
 
-      {/* Wheels — FR */}
+      {/* Wheels FR */}
       <group position={[0.98, 0.28, -1.3]}>
         <mesh ref={wheelFRRef} rotation={[0, 0, Math.PI / 2]}>
           <cylinderGeometry args={[0.3, 0.3, 0.22, 16]} />
@@ -152,7 +152,7 @@ export const ProceduralCar = ({ onArrived }: ProceduralCarProps) => {
         </mesh>
       </group>
 
-      {/* Wheels — BL */}
+      {/* Wheels BL */}
       <group position={[-0.98, 0.28, 1.3]}>
         <mesh ref={wheelBLRef} rotation={[0, 0, Math.PI / 2]}>
           <cylinderGeometry args={[0.3, 0.3, 0.22, 16]} />
@@ -164,7 +164,7 @@ export const ProceduralCar = ({ onArrived }: ProceduralCarProps) => {
         </mesh>
       </group>
 
-      {/* Wheels — BR */}
+      {/* Wheels BR */}
       <group position={[0.98, 0.28, 1.3]}>
         <mesh ref={wheelBRRef} rotation={[0, 0, Math.PI / 2]}>
           <cylinderGeometry args={[0.3, 0.3, 0.22, 16]} />
