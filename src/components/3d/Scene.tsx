@@ -2,8 +2,7 @@ import React, { Suspense } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { Sky, Environment, Clouds, Cloud } from '@react-three/drei';
 import * as THREE from 'three';
-import { EffectComposer, Bloom, Vignette, ChromaticAberration } from '@react-three/postprocessing';
-import { BlendFunction } from 'postprocessing';
+
 import { CameraController } from './CameraController';
 import { ProceduralCar } from './ProceduralCar';
 import { AssistantCharacter } from './AssistantCharacter';

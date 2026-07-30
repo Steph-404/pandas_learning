@@ -9,7 +9,7 @@ const OfficeDoor = () => {
   const leftDoor = useRef<THREE.Mesh>(null);
   const rightDoor = useRef<THREE.Mesh>(null);
 
-  useFrame((state, delta) => {
+  useFrame((_, delta) => {
     if (!leftDoor.current || !rightDoor.current) return;
     const isOpen = ['TRANSITION_LAB', 'IN_LAB', 'APPROACHING_SCREEN'].includes(sequence);
     
@@ -46,7 +46,7 @@ export const OfficeLab = () => {
   const screenGlowRef = useRef<THREE.MeshStandardMaterial>(null);
   const screenLightRef = useRef<THREE.PointLight>(null);
 
-  useFrame((_) => {
+  useFrame((state) => {
     const t = state.clock.elapsedTime;
     // Subtle monitor flicker
     if (screenGlowRef.current) {
