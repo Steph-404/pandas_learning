@@ -268,9 +268,29 @@ export const QuestionPanel: React.FC = () => {
             </div>
           )}
 
-          {/* Next / Finish button */}
-          {selectedAnswer && (
-            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+          {/* Footer Actions */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            {!selectedAnswer ? (
+              <button
+                onClick={handleNext}
+                style={{
+                  background: 'transparent',
+                  color: '#557799',
+                  border: 'none',
+                  cursor: 'pointer',
+                  fontSize: '0.8rem',
+                  textDecoration: 'underline',
+                  fontFamily: 'inherit',
+                  padding: '8px 0'
+                }}
+                onMouseEnter={e => e.currentTarget.style.color = '#88aadd'}
+                onMouseLeave={e => e.currentTarget.style.color = '#557799'}
+              >
+                Skip Question →
+              </button>
+            ) : <div />}
+
+            {selectedAnswer && (
               <button
                 onClick={handleNext}
                 style={{
@@ -292,8 +312,8 @@ export const QuestionPanel: React.FC = () => {
               >
                 {isLastStage ? '◆ Complete Assessment' : '→ Next Stage'}
               </button>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       </div>
     </div>

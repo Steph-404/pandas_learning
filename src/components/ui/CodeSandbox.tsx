@@ -101,10 +101,24 @@ export const CodeSandbox: React.FC = () => {
   const handleNextStage = () => {
     if (currentStageId >= STORYLINE.length) {
       useGameStore.getState().incrementScore();
+      useGameStore.getState().setQuestionActive(false);
       setSequence('FAREWELL_TRANSIT');
     } else {
       useGameStore.getState().incrementScore();
       nextStage();
+      useGameStore.getState().setDialogueActive(false);
+      setTimeout(() => useGameStore.getState().setDialogueActive(true), 500);
+    }
+  };
+
+  const handleSkip = () => {
+    if (currentStageId >= STORYLINE.length) {
+      useGameStore.getState().setQuestionActive(false);
+      setSequence('FAREWELL_TRANSIT');
+    } else {
+      nextStage();
+      useGameStore.getState().setDialogueActive(false);
+      setTimeout(() => useGameStore.getState().setDialogueActive(true), 500);
     }
   };
 
@@ -145,22 +159,42 @@ export const CodeSandbox: React.FC = () => {
             {errorMsg && <div className="error-text">{errorMsg}</div>}
           </div>
           
-          <div className="sandbox-actions">
+          <div className="sandbox-actions" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             {!isValidated ? (
-              <button 
-                className={`btn-run ${isRunning || isPyodideLoading ? 'disabled' : ''}`}
-                onClick={handleRunCode}
-                disabled={isRunning || isPyodideLoading}
-              >
-                {isRunning ? 'Running...' : 'Run Code (Ctrl+Enter)'}
-              </button>
+              <>
+                <button
+                  onClick={handleSkip}
+                  style={{
+                    background: 'transparent',
+                    color: '#557799',
+                    border: 'none',
+                    cursor: 'pointer',
+                    fontSize: '0.8rem',
+                    textDecoration: 'underline',
+                    fontFamily: 'inherit',
+                  }}
+                  onMouseEnter={e => e.currentTarget.style.color = '#88aadd'}
+                  onMouseLeave={e => e.currentTarget.style.color = '#557799'}
+                >
+                  Skip Task →
+                </button>
+                <button 
+                  className={`btn-run ${isRunning || isPyodideLoading ? 'disabled' : ''}`}
+                  onClick={handleRunCode}
+                  disabled={isRunning || isPyodideLoading}
+                >
+                  {isRunning ? 'Running...' : 'Run Code (Ctrl+Enter)'}
+                </button>
+              </>
             ) : (
-              <button 
-                className="btn-next-stage"
-                onClick={handleNextStage}
-              >
-                Proceed to Next Stage →
-              </button>
+              <div style={{ marginLeft: 'auto' }}>
+                <button 
+                  className="btn-next-stage"
+                  onClick={handleNextStage}
+                >
+                  Proceed to Next Stage →
+                </button>
+              </div>
             )}
           </div>
         </div>
