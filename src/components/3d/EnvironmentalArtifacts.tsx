@@ -1,6 +1,4 @@
 import React from 'react';
-import { useGLTF } from '@react-three/drei';
-import * as THREE from 'three';
 
 export const EnvironmentalArtifacts: React.FC = () => {
   // We will procedurally build these artifacts instead of loading GLTFs to save bandwidth/complexity,

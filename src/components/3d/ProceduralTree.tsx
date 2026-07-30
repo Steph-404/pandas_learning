@@ -1,5 +1,4 @@
 import React, { useMemo } from 'react';
-import * as THREE from 'three';
 
 interface ProceduralTreeProps {
   position: [number, number, number];

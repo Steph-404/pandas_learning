@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import { useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 
@@ -17,7 +17,7 @@ export const ProceduralAssistant = ({ animation = 'Idle', ...props }: Procedural
 
   const animTime = useRef(0);
 
-  useFrame((state, delta) => {
+  useFrame((_, delta) => {
     if (!group.current || !leftLeg.current || !rightLeg.current || !leftArm.current || !rightArm.current || !body.current) return;
 
     if (animation === 'Walk') {

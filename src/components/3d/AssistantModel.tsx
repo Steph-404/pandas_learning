@@ -21,14 +21,16 @@ export function AssistantModel({ animation = 'Idle', ...props }: any) {
     
     if (actions && actions[targetAnim]) {
       const action = actions[targetAnim];
-      // Play animation
-      action.reset().fadeIn(0.3).play();
-      
-      return () => { action.fadeOut(0.3); }
+      if (action) {
+        // Play animation
+        action.reset().fadeIn(0.3).play();
+        
+        return () => { action.fadeOut(0.3); }
+      }
     }
   }, [animation, actions]);
   
-  useFrame((state, delta) => {
+  useFrame((_, delta) => {
      if (animation === 'Wave') {
          waveTime.current += delta;
          // Wave twice (one wave cycle = ~1s, so 2 waves = 2s)

@@ -46,7 +46,7 @@ export const OfficeLab = () => {
   const screenGlowRef = useRef<THREE.MeshStandardMaterial>(null);
   const screenLightRef = useRef<THREE.PointLight>(null);
 
-  useFrame((state) => {
+  useFrame((_) => {
     const t = state.clock.elapsedTime;
     // Subtle monitor flicker
     if (screenGlowRef.current) {

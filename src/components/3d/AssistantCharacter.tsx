@@ -24,7 +24,7 @@ export const AssistantCharacter = () => {
     }
   }, [sequence]);
   
-  useFrame((state, delta) => {
+  useFrame((_, delta) => {
     if (!groupRef.current) return;
     
     // Animate assistant position based on sequence:
