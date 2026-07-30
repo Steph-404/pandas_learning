@@ -1,6 +1,13 @@
 import { create } from 'zustand';
 
-type GameSequence = 'CAR_ARRIVING' | 'ALIGHTING' | 'GREETING' | 'TRANSITION_LAB' | 'IN_LAB' | 'COMPLETED';
+export type GameSequence =
+  | 'CAR_ARRIVING'
+  | 'ALIGHTING'
+  | 'GREETING'
+  | 'TRANSITION_LAB'
+  | 'IN_LAB'
+  | 'APPROACHING_SCREEN'
+  | 'COMPLETED';
 
 interface GameState {
   sequence: GameSequence;
@@ -28,7 +35,7 @@ export const useGameStore = create<GameState>((set) => ({
   isQuestionActive: false,
   selectedAnswer: null,
   feedback: null,
-  
+
   setSequence: (seq) => set({ sequence: seq }),
   setStage: (stageId) => set({ currentStageId: stageId }),
   incrementScore: () => set((state) => ({ score: state.score + 100 })),
@@ -36,12 +43,12 @@ export const useGameStore = create<GameState>((set) => ({
   setQuestionActive: (active) => set({ isQuestionActive: active }),
   setSelectedAnswer: (answer) => set({ selectedAnswer: answer }),
   setFeedback: (feedback) => set({ feedback: feedback }),
-  
-  nextStage: () => set((state) => ({ 
+
+  nextStage: () => set((state) => ({
     currentStageId: state.currentStageId + 1,
     isDialogueActive: true,
     isQuestionActive: false,
     selectedAnswer: null,
-    feedback: null
-  }))
+    feedback: null,
+  })),
 }));

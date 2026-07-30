@@ -1,11 +1,9 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useThree } from '@react-three/fiber';
 import { useGameStore } from '../../store/gameStore';
 import anime from 'animejs';
 import * as THREE from 'three';
 
-// We keep track of the current lookAt globally outside React 
-// so we can tween it smoothly along with the position.
 const currentLookAt = new THREE.Vector3(0, 1.5, 0);
 
 export const CameraController = () => {
@@ -13,35 +11,48 @@ export const CameraController = () => {
   const sequence = useGameStore(state => state.sequence);
   const setDialogueActive = useGameStore(state => state.setDialogueActive);
   const setSequence = useGameStore(state => state.setSequence);
-  
-  const POSITIONS = {
-    CAR_ARRIVING: { pos: [0, 1.5, 45], lookAt: [0, 1.5, 35], duration: 0 },
-    ALIGHTING: { pos: [0, 1.5, 6], lookAt: [0, 1.5, 0], duration: 4000 },
-    GREETING: { pos: [0, 1.5, 6], lookAt: [0, 1.5, 0], duration: 0 },
-    TRANSITION_LAB: { pos: [0, 1.5, -2], lookAt: [0, 1.5, -6], duration: 2500 },
-    IN_LAB: { pos: [0, 1.5, -2], lookAt: [0, 1.5, -6], duration: 0 }
+  const setQuestionActive = useGameStore(state => state.setQuestionActive);
+  const animatingRef = useRef(false);
+
+  // Waypoints: pos = camera position, lookAt = where camera looks
+  const WAYPOINTS: Record<string, { pos: [number,number,number]; lookAt: [number,number,number]; duration: number }> = {
+    // Exterior — looking at building entrance while car drives up
+    CAR_ARRIVING: { pos: [0, 1.5, 50], lookAt: [0, 1.5, 20], duration: 0 },
+    // Walk forward from where car stopped, face the assistant
+    ALIGHTING:    { pos: [0, 1.5, 8], lookAt: [0, 1.5, 0], duration: 5000 },
+    // Settled, looking at assistant — dialogue starts
+    GREETING:     { pos: [0, 1.5, 8], lookAt: [0, 1.5, 0], duration: 0 },
+    // Walk through entrance toward office
+    TRANSITION_LAB: { pos: [0, 1.5, -10], lookAt: [0, 1.0, -18], duration: 4000 },
+    // Inside lab, looking at desk from a step back
+    IN_LAB:       { pos: [0, 1.5, -10], lookAt: [0, 1.5, -22], duration: 0 },
+    // Zoom into monitor — screen fills view
+    APPROACHING_SCREEN: { pos: [0, 1.62, -22], lookAt: [0, 1.62, -30], duration: 3500 },
   };
 
   useEffect(() => {
-    const target = POSITIONS[sequence as keyof typeof POSITIONS];
-    if (!target) return;
+    const target = WAYPOINTS[sequence];
+    if (!target || animatingRef.current) return;
 
     if (target.duration === 0) {
-      camera.position.set(target.pos[0], target.pos[1], target.pos[2]);
-      currentLookAt.set(target.lookAt[0], target.lookAt[1], target.lookAt[2]);
+      camera.position.set(...target.pos);
+      currentLookAt.set(...target.lookAt);
       camera.lookAt(currentLookAt);
-      
-      if (sequence === 'CAR_ARRIVING') {
-        // Auto start sequence: Alight from car
-        setTimeout(() => setSequence('ALIGHTING'), 1000);
+
+      if (sequence === 'GREETING') {
+        setDialogueActive(true);
+      }
+      if (sequence === 'IN_LAB') {
+        // Short pause then zoom to screen
+        setTimeout(() => setSequence('APPROACHING_SCREEN'), 1800);
       }
       return;
     }
 
-    // Create a proxy object to hold tweenable values
+    animatingRef.current = true;
     const tweenProxy = {
       px: camera.position.x, py: camera.position.y, pz: camera.position.z,
-      lx: currentLookAt.x, ly: currentLookAt.y, lz: currentLookAt.z
+      lx: currentLookAt.x, ly: currentLookAt.y, lz: currentLookAt.z,
     };
 
     anime({
@@ -56,18 +67,19 @@ export const CameraController = () => {
         camera.lookAt(currentLookAt);
       },
       complete: () => {
+        animatingRef.current = false;
         if (sequence === 'ALIGHTING') {
           setSequence('GREETING');
-          setDialogueActive(true);
         }
         if (sequence === 'TRANSITION_LAB') {
           setSequence('IN_LAB');
-          useGameStore.getState().setQuestionActive(true);
         }
-      }
+        if (sequence === 'APPROACHING_SCREEN') {
+          setQuestionActive(true);
+        }
+      },
     });
-
-  }, [sequence, camera, setDialogueActive, setSequence]);
+  }, [sequence]);
 
   return null;
 };
