@@ -21,11 +21,29 @@ const AXIS_Z = new THREE.Vector3(0, 0, 1);
 //    horizontal and the arm looks like it grows out of the torso),
 //  - the upper arm is twisted inward so the palms face the thighs instead
 //    of forward (the bind pose has palms facing forward).
-const SHOULDER_DROP = 0.12;
-const ARM_DOWN = -1.15;
-const ARM_TWIST = 1.45;
-const ELBOW_FORWARD = -0.28;
-const FOREARM_FLARE = 0.10;
+const devNum = (key: string, fallback: number) => {
+  if (typeof window === 'undefined') return fallback;
+  const raw = new URLSearchParams(window.location.search).get(key);
+  if (raw === null) return fallback;
+  const value = Number(raw);
+  return Number.isFinite(value) ? value : fallback;
+};
+
+const SHOULDER_DROP = devNum('sdrop', 0.10);
+const ARM_DOWN = devNum('adown', -1.05);
+const ARM_TWIST = devNum('twist', 1.5);
+const ELBOW_FORWARD = devNum('elbow', -0.25);
+const FOREARM_FLARE = devNum('flare', 0.0);
+const WRIST_FORWARD = devNum('wristx', 0);
+const HAND_ALIGN = devNum('handz', 0);
+
+/** Slight relaxed curl for the four fingers of one hand. */
+const FINGER_CURL: [string, number][] = [
+  ['index_01', -0.30], ['index_02', -0.40],
+  ['middle_01', -0.32], ['middle_02', -0.42],
+  ['ring_01', -0.34], ['ring_02', -0.45],
+  ['pinky_01', -0.36], ['pinky_02', -0.48],
+];
 
 const _qA = new THREE.Quaternion();
 const _qB = new THREE.Quaternion();
@@ -80,16 +98,40 @@ export function AssistantModel({
       bone.quaternion.copy(base[name]);
     };
 
+    // Twist a bone about ITS OWN length axis (a true twist). The axis is
+    // derived from the bone's first child joint (left arm bones run along
+    // local +X, right arm bones along local -X in this rig), so the roll is
+    // mirrored correctly on both sides.
+    const twistBind = (name: string, angle: number) => {
+      const bone = bones[name];
+      if (!bone) return;
+      bone.updateWorldMatrix(true, false);
+      bone.getWorldQuaternion(_qA);
+      const child = bone.children.find((c) => (c as THREE.Bone).isBone) as THREE.Bone | undefined;
+      const dir = child
+        ? new THREE.Vector3().copy(child.position).normalize().applyQuaternion(_qA)
+        : new THREE.Vector3(1, 0, 0).applyQuaternion(_qA);
+      rotateBind(name, dir, angle);
+    };
+
     rotateBind('shoulder_l', AXIS_Z, -SHOULDER_DROP);
     rotateBind('shoulder_r', AXIS_Z, SHOULDER_DROP);
     rotateBind('upperarm_l', AXIS_Z, ARM_DOWN);
     rotateBind('upperarm_r', AXIS_Z, -ARM_DOWN);
-    rotateBind('upperarm_l', AXIS_Y, -ARM_TWIST);
-    rotateBind('upperarm_r', AXIS_Y, ARM_TWIST);
+    twistBind('upperarm_l', ARM_TWIST);
+    twistBind('upperarm_r', -ARM_TWIST);
     rotateBind('lowerarm_l', AXIS_X, ELBOW_FORWARD);
     rotateBind('lowerarm_r', AXIS_X, ELBOW_FORWARD);
     rotateBind('lowerarm_l', AXIS_Z, FOREARM_FLARE);
     rotateBind('lowerarm_r', AXIS_Z, -FOREARM_FLARE);
+    rotateBind('hand_l', AXIS_X, WRIST_FORWARD);
+    rotateBind('hand_r', AXIS_X, WRIST_FORWARD);
+    rotateBind('hand_l', AXIS_Z, HAND_ALIGN);
+    rotateBind('hand_r', AXIS_Z, -HAND_ALIGN);
+    for (const [finger, angle] of FINGER_CURL) {
+      rotateBind(`${finger}_l`, AXIS_Z, angle);
+      rotateBind(`${finger}_r`, AXIS_Z, -angle);
+    }
 
     clone.updateMatrixWorld(true);
     for (const [name, bone] of Object.entries(bones)) {
