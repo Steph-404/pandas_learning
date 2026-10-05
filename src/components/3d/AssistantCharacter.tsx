@@ -1,144 +1,203 @@
-import { useRef, useMemo } from 'react';
+import { useRef, useMemo, useEffect, useState } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { Text, Float } from '@react-three/drei';
 import * as THREE from 'three';
 import { useGameStore } from '../../store/gameStore';
+import { STORYLINE } from '../../data/storyline';
 import { AssistantModel } from './AssistantModel';
+import type { AssistantAnim } from './AssistantModel';
+
+type Vec3 = [number, number, number];
+
+/** Where Dr. Nwosu waits while the transport arrives. */
+const ENTRANCE: Vec3 = [1.8, 0, -11.4];
+
+/** Lab stations — she walks to the work area for the current day's tasks. */
+const LAB_STATIONS: Record<number, Vec3> = {
+  1: [-14.2, 0, -18.8],   // beside the terminal desk
+  2: [-19.0, 0, -19.6],   // at the whiteboard (filtering & cleaning day)
+  3: [-15.8, 0, -18.9],   // left side of the desk (text / dates day)
+  4: [-13.4, 0, -22.3],   // at the dashboard wall (grouping & combining day)
+};
+
+/** Walk-in route: forecourt -> door on the lab's east wall -> lab floor. */
+const DOOR_APPROACH: Vec3[] = [
+  [0, 0, -15.4],
+  [-6.6, 0, -16.2],
+  [-10.1, 0, -16.4],
+  [-12.3, 0, -17.4],
+];
+
+/** Walk-out route: lab -> door -> forecourt. */
+const DOOR_EXIT: Vec3[] = [
+  [-12.3, 0, -17.4],
+  [-10.1, 0, -16.4],
+  [-6.6, 0, -16.2],
+  [0, 0, -14.6],
+];
+
+const stationForDay = (day: number): Vec3 => LAB_STATIONS[Math.min(4, Math.max(1, day))];
+
+const dayFromStage = (stageId: number): number => {
+  const title = STORYLINE.find((s) => s.id === stageId)?.title ?? '';
+  const match = title.match(/Stage (\d+)\./);
+  return match ? Number(match[1]) : 1;
+};
+
+const WALK_SPEED = 1.55;
+const REACHED = 0.09;
 
 export const AssistantCharacter = () => {
   const groupRef = useRef<THREE.Group>(null);
-  const sequence = useGameStore(state => state.sequence);
+  const sequence = useGameStore((s) => s.sequence);
+  const stageId = useGameStore((s) => s.currentStageId);
+  const isDialogueActive = useGameStore((s) => s.isDialogueActive);
+  const isQuestionActive = useGameStore((s) => s.isQuestionActive);
 
-  // Determine animation based on sequence
-  const animation = useMemo(() => {
+  const day = dayFromStage(stageId);
+
+  const waypoints = useMemo<Vec3[]>(() => {
     switch (sequence) {
-      case 'CAR_ARRIVING': return 'Idle'; 
-      case 'ALIGHTING': return 'Walk'; // Walks towards building as user alights
-      case 'GREETING': return 'Wave'; // Waves twice
-      case 'TRANSITION_LAB': return 'Walk'; // Walks to the left lab
-      case 'IN_LAB': return 'Idle';
-      case 'APPROACHING_SCREEN': return 'Idle';
-      case 'FAREWELL_TRANSIT': return 'Walk';
-      case 'FAREWELL': return 'Wave';
-      default: return 'Idle';
+      case 'CAR_ARRIVING':
+      case 'ALIGHTING':
+      case 'GREETING':
+        return [ENTRANCE];
+      case 'TRANSITION_LAB':
+      case 'IN_LAB':
+      case 'APPROACHING_SCREEN':
+        return [...DOOR_APPROACH, stationForDay(1)];
+      case 'QUESTION_ACTIVE':
+        return [stationForDay(day)];
+      case 'FAREWELL_TRANSIT':
+        return [...DOOR_EXIT, ENTRANCE];
+      case 'FAREWELL':
+      case 'COMPLETED':
+        return [ENTRANCE];
+      default:
+        return [ENTRANCE];
+    }
+  }, [sequence, day]);
+
+  const waypointIndex = useRef(0);
+  const walking = useRef(false);
+  const waveTime = useRef(0);
+  const [animation, setAnimation] = useState<AssistantAnim>('Idle');
+  const animRef = useRef<AssistantAnim>('Idle');
+
+  // When the app is jumped straight into a question sequence (dev/testing),
+  // start at that day's station instead of walking in from the entrance.
+  const startPos = useMemo<Vec3>(
+    () => (sequence === 'QUESTION_ACTIVE' ? stationForDay(dayFromStage(stageId)) : ENTRANCE),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [],
+  );
+
+  useEffect(() => {
+    waypointIndex.current = 0;
+  }, [waypoints]);
+
+  useEffect(() => {
+    if (sequence === 'GREETING' || sequence === 'FAREWELL') {
+      waveTime.current = 0.0001;
     }
   }, [sequence]);
-  
-  useFrame((_, delta) => {
-    if (!groupRef.current) return;
-    
-    // Animate assistant position based on sequence:
-    let targetZ = 12; // Start standing away from building, closer to the road
-    let targetX = 0;
-    
-    // Waypoint logic for entering the lab without phasing through walls
-    if (sequence === 'ALIGHTING' || sequence === 'GREETING') {
-      targetZ = -12; // Walks to entrance
-      targetX = 0;
-    } else if (sequence === 'TRANSITION_LAB' || sequence === 'IN_LAB' || sequence === 'APPROACHING_SCREEN') {
-      const currentZ = groupRef.current.position.z;
-      const currentX = groupRef.current.position.x;
-      
-      if (currentZ > -15.5 && currentX > -2) {
-        // Step 1: walk straight into the lobby
-        targetZ = -16;
-        targetX = 0;
-      } else if (currentX > -14) {
-        // Step 2: walk left down the hallway
-        targetZ = -16;
-        targetX = -15;
+
+  useFrame((state, rawDelta) => {
+    const group = groupRef.current;
+    if (!group) return;
+    const delta = Math.min(rawDelta, 0.1);
+    const moveDelta = Math.min(rawDelta, 0.5);
+
+    // --- Waypoint following ---
+    let moved = false;
+    const target = waypoints[waypointIndex.current];
+    if (target) {
+      const dx = target[0] - group.position.x;
+      const dz = target[2] - group.position.z;
+      const dist = Math.hypot(dx, dz);
+      if (dist < REACHED) {
+        waypointIndex.current += 1;
+        if (waypointIndex.current >= waypoints.length) walking.current = false;
       } else {
-        // Step 3: enter the lab room
-        targetZ = -19.5;
-        targetX = -16; // Move to the side of the desk so screen is visible
+        const step = Math.min(WALK_SPEED * moveDelta, dist);
+        group.position.x += (dx / dist) * step;
+        group.position.z += (dz / dist) * step;
+        moved = true;
+        walking.current = true;
+
+        const targetYaw = Math.atan2(dx, dz);
+        let diff = targetYaw - group.rotation.y;
+        while (diff < -Math.PI) diff += Math.PI * 2;
+        while (diff > Math.PI) diff -= Math.PI * 2;
+        group.rotation.y += diff * Math.min(1, delta * 10);
       }
-    } else if (sequence === 'FAREWELL_TRANSIT' || sequence === 'FAREWELL') {
-      targetZ = -12;
-      targetX = 0;
-    }
-
-    const prevX = groupRef.current.position.x;
-    const prevZ = groupRef.current.position.z;
-
-    // Constant speed movement instead of lerp
-    const distZ = targetZ - prevZ;
-    const distX = targetX - prevX;
-    const dist = Math.sqrt(distX * distX + distZ * distZ);
-    
-    if (dist > 0.05) {
-      const moveSpeed = 3.5; // Constant walking speed
-      const step = Math.min(moveSpeed * delta, dist);
-      groupRef.current.position.x += (distX / dist) * step;
-      groupRef.current.position.z += (distZ / dist) * step;
-    }
-    
-    // Calculate direction of movement
-    const dx = groupRef.current.position.x - prevX;
-    const dz = groupRef.current.position.z - prevZ;
-    const speed = Math.sqrt(dx*dx + dz*dz) / delta;
-    
-    let targetRotation = groupRef.current.rotation.y;
-    
-    if (speed > 0.1) {
-      // If moving, face the direction of movement (added PI to fix backward walking)
-      targetRotation = Math.atan2(dx, dz) + Math.PI;
     } else {
-      // If stationary, face the user
-      // Player is roughly at X=-15, Z=-18 in lab, X=0, Z=8 outside
-      let lookTargetX = 0;
-      let lookTargetZ = 8;
-      if (sequence === 'IN_LAB' || sequence === 'APPROACHING_SCREEN') {
-          lookTargetX = -15;
-          lookTargetZ = -18;
-      }
-      targetRotation = Math.atan2(lookTargetX - groupRef.current.position.x, lookTargetZ - groupRef.current.position.z) + Math.PI;
+      walking.current = false;
     }
-    
-    // Smooth rotation
-    const currentRot = groupRef.current.rotation.y;
-    // Handle wrap around
-    let diff = targetRotation - currentRot;
-    while (diff < -Math.PI) diff += Math.PI * 2;
-    while (diff > Math.PI) diff -= Math.PI * 2;
-    
-    groupRef.current.rotation.y += diff * delta * 5.0;
+
+    // --- Face the camera when standing still ---
+    if (!moved && !walking.current) {
+      const dx = state.camera.position.x - group.position.x;
+      const dz = state.camera.position.z - group.position.z;
+      if (Math.hypot(dx, dz) > 0.2) {
+        const targetYaw = Math.atan2(dx, dz);
+        let diff = targetYaw - group.rotation.y;
+        while (diff < -Math.PI) diff += Math.PI * 2;
+        while (diff > Math.PI) diff -= Math.PI * 2;
+        group.rotation.y += diff * Math.min(1, delta * 5);
+      }
+    }
+
+    if (waveTime.current > 0) waveTime.current += delta;
+
+    let desired: AssistantAnim = 'Idle';
+    if (walking.current) desired = 'Walk';
+    else if (waveTime.current > 0 && waveTime.current < 3.4) desired = 'Wave';
+    else if (isQuestionActive || isDialogueActive) desired = 'Talking';
+    if (animRef.current !== desired) {
+      animRef.current = desired;
+      setAnimation(desired);
+    }
   });
 
+  const showLabel =
+    sequence === 'CAR_ARRIVING' ||
+    sequence === 'ALIGHTING' ||
+    sequence === 'GREETING' ||
+    sequence === 'FAREWELL';
+
   return (
-    <group ref={groupRef} position={[0, 0, 18]}>
-      {/* Halo/Spotlight */}
-      <pointLight position={[0, 4, 0]} color="#ffd4a0" intensity={2.0} distance={8} />
-
-      {/* The Animated Model */}
-      <AssistantModel animation={animation} scale={[0.8, 0.8, 0.8]} />
-
-      {/* Floating name label */}
-      <Float speed={2} rotationIntensity={0} floatIntensity={0.2} floatingRange={[-0.05, 0.05]}>
-        <group position={[0, 3.2, 0]}>
-          <Text
-            position={[0, 0, 0]}
-            fontSize={0.2}
-            color="#1a4a8a"
-            anchorX="center"
-            anchorY="middle"
-            outlineWidth={0.01}
-            outlineColor="#ffffff"
-          >
-            Dr. Amara Nwosu
-          </Text>
-          <Text
-            position={[0, -0.22, 0]}
-            fontSize={0.12}
-            color="#2a6aaa"
-            anchorX="center"
-            anchorY="middle"
-            outlineWidth={0.005}
-            outlineColor="#ffffff"
-          >
-            Senior Data Scientist
-          </Text>
-        </group>
-      </Float>
+    <group ref={groupRef} position={[startPos[0], 0.02, startPos[2]]}>
+      <pointLight position={[0, 2.4, 0.6]} color="#ffd4a0" intensity={0.9} distance={5} />
+      <AssistantModel animation={animation} />
+      {showLabel && (
+        <Float speed={2} rotationIntensity={0} floatIntensity={0.15} floatingRange={[-0.03, 0.03]}>
+          <group position={[0, 2.28, 0]}>
+            <Text
+              position={[0, 0, 0]}
+              fontSize={0.13}
+              color="#123c72"
+              anchorX="center"
+              anchorY="middle"
+              outlineWidth={0.01}
+              outlineColor="#ffffff"
+            >
+              Dr. Amara Nwosu
+            </Text>
+            <Text
+              position={[0, -0.15, 0]}
+              fontSize={0.08}
+              color="#1f5a94"
+              anchorX="center"
+              anchorY="middle"
+              outlineWidth={0.006}
+              outlineColor="#ffffff"
+            >
+              Senior Data Scientist
+            </Text>
+          </group>
+        </Float>
+      )}
     </group>
   );
 };

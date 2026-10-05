@@ -114,17 +114,17 @@ export const EnvironmentalArtifacts: React.FC = () => {
         </mesh>
       </group>
 
-      {/* 4. Roof Details (HVAC & Satellite) (on top of main building y=4.5) */}
-      <group position={[5, 4.5, -15]}>
+      {/* 4. Roof Details (HVAC & Satellite) — seated on the facade roofline */}
+      <group position={[5, 12.2, -19.9]}>
         <mesh position={[0, 0.5, 0]} castShadow>
           <boxGeometry args={[3, 1, 3]} />
           <meshStandardMaterial color="#aaa" metalness={0.8} />
         </mesh>
-        <mesh position={[-4, 0.8, -2]} rotation={[-Math.PI / 6, Math.PI / 4, 0]} castShadow>
+        <mesh position={[4.2, 0.85, 0.2]} rotation={[-Math.PI / 6, Math.PI / 4, 0]} castShadow>
           <cylinderGeometry args={[1.5, 0.2, 0.3, 16]} />
           <meshStandardMaterial color="#eee" />
         </mesh>
-        <mesh position={[-4, 0.8, -2]} rotation={[-Math.PI / 6, Math.PI / 4, 0]}>
+        <mesh position={[4.2, 0.85, 0.2]} rotation={[-Math.PI / 6, Math.PI / 4, 0]}>
           <cylinderGeometry args={[0.05, 0.05, 2]} />
           <meshStandardMaterial color="#555" />
         </mesh>

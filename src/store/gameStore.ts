@@ -12,6 +12,20 @@ export type GameSequence =
   | 'FAREWELL'
   | 'COMPLETED';
 
+const VALID_SEQUENCES: GameSequence[] = [
+  'CAR_ARRIVING', 'ALIGHTING', 'GREETING', 'TRANSITION_LAB', 'IN_LAB',
+  'APPROACHING_SCREEN', 'QUESTION_ACTIVE', 'FAREWELL_TRANSIT', 'FAREWELL', 'COMPLETED',
+];
+
+/** Dev/testing: ?seq=IN_LAB&stage=12&question=1 jumps straight to any point. */
+const params = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
+const seqParam = params?.get('seq') ?? '';
+const initialSequence: GameSequence = (VALID_SEQUENCES as string[]).includes(seqParam)
+  ? (seqParam as GameSequence)
+  : 'CAR_ARRIVING';
+const stageParam = Number(params?.get('stage') ?? '1');
+const initialStage = Number.isFinite(stageParam) && stageParam >= 1 && stageParam <= 43 ? stageParam : 1;
+
 interface GameState {
   sequence: GameSequence;
   currentStageId: number;
@@ -34,11 +48,11 @@ interface GameState {
 }
 
 export const useGameStore = create<GameState>((set) => ({
-  sequence: 'CAR_ARRIVING',
-  currentStageId: 1,
+  sequence: initialSequence,
+  currentStageId: initialStage,
   score: 0,
-  isDialogueActive: false,
-  isQuestionActive: false,
+  isDialogueActive: params?.get('dialogue') === '1',
+  isQuestionActive: params?.get('question') === '1',
   selectedAnswer: null,
   feedback: null,
   briefingActive: false,

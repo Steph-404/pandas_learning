@@ -1,6 +1,6 @@
 import React, { Suspense } from 'react';
 import { Canvas } from '@react-three/fiber';
-import { Sky, Environment, Clouds, Cloud } from '@react-three/drei';
+import { Sky, Environment, Clouds, Cloud, Text } from '@react-three/drei';
 import * as THREE from 'three';
 
 import { CameraController } from './CameraController';
@@ -19,7 +19,7 @@ const ExteriorEnvironment = () => {
       {/* Wide ground — green-ish grass/tarmac */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.02, 0]} receiveShadow>
         <planeGeometry args={[300, 300]} />
-        <meshStandardMaterial color="#8a9a6a" roughness={1} />
+        <meshStandardMaterial color="#7f9663" roughness={1} />
       </mesh>
 
       {/* Road surface */}
@@ -30,29 +30,35 @@ const ExteriorEnvironment = () => {
 
       {/* Road center-line markings */}
       {Array.from({ length: 16 }).map((_, i) => (
-        <mesh key={i} rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.01, 60 - i * 5.5]}>
+        <mesh key={i} rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.02, 60 - i * 5.5]}>
           <planeGeometry args={[0.14, 2.2]} />
           <meshStandardMaterial color="#e8d040" />
         </mesh>
       ))}
 
-      {/* Forecourt / pavement */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.01, -8]} receiveShadow>
-        <planeGeometry args={[24, 28]} />
+      {/* Forecourt / pavement — ends at the lab's east wall */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[1.25, 0.04, -8]} receiveShadow>
+        <planeGeometry args={[21.5, 28]} />
         <meshStandardMaterial color="#cec8bc" roughness={0.85} />
       </mesh>
 
+      {/* Paved approach to the lab entrance */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[-7.6, 0.05, -16]} receiveShadow>
+        <planeGeometry args={[3.8, 4.6]} />
+        <meshStandardMaterial color="#b8b2a6" roughness={0.9} />
+      </mesh>
+
       {/* Building — main facade */}
-      <mesh position={[0, 5, -20]} receiveShadow castShadow>
-        <boxGeometry args={[24, 14, 0.6]} />
+      <mesh position={[1.4, 5, -20]} receiveShadow castShadow>
+        <boxGeometry args={[21.2, 14, 0.6]} />
         <meshStandardMaterial color="#e0dbd0" roughness={0.6} metalness={0.1} />
       </mesh>
 
-      {/* Building — left side wing exterior shell (covers the OfficeLab) */}
+      {/* Building — left wing exterior shell (wraps the OfficeLab) */}
       <group position={[-15, 3.5, -18]}>
-        {/* Front wall */}
-        <mesh position={[0, 0, 6.5]} receiveShadow castShadow>
-          <boxGeometry args={[12, 10, 1]} />
+        {/* Solid band above the glazed lab front (the glass itself lives in OfficeLab) */}
+        <mesh position={[0, 2.75, 6.4]} receiveShadow castShadow>
+          <boxGeometry args={[12, 4.5, 0.6]} />
           <meshStandardMaterial color="#d8d2c8" roughness={0.7} />
         </mesh>
         {/* Back wall */}
@@ -65,7 +71,21 @@ const ExteriorEnvironment = () => {
           <boxGeometry args={[1, 10, 12]} />
           <meshStandardMaterial color="#d8d2c8" roughness={0.7} />
         </mesh>
-        {/* No right wall; the OfficeLab's right wall (X = -9.2) forms the interior hallway partition */}
+        {/* No right wall; the OfficeLab's east wall (X = -9.2) holds the entrance doors */}
+      </group>
+
+      {/* Entrance canopy over the lab door */}
+      <group position={[-7.5, 0, -16]}>
+        <mesh position={[0, 3.1, 0]} castShadow receiveShadow>
+          <boxGeometry args={[3.4, 0.16, 4.4]} />
+          <meshStandardMaterial color="#c8c0b4" roughness={0.7} metalness={0.15} />
+        </mesh>
+        {[-1.9, 1.9].map((z, i) => (
+          <mesh key={i} position={[1.35, 1.55, z]} castShadow>
+            <cylinderGeometry args={[0.07, 0.09, 3.1, 10]} />
+            <meshStandardMaterial color="#8a8478" roughness={0.6} metalness={0.3} />
+          </mesh>
+        ))}
       </group>
 
       <mesh position={[14, 3.5, -16]} receiveShadow castShadow>
@@ -96,6 +116,26 @@ const ExteriorEnvironment = () => {
         <boxGeometry args={[10, 1.2, 0.12]} />
         <meshStandardMaterial color="#1a3a6a" />
       </mesh>
+      <Text
+        position={[0, 10.5, -19.52]}
+        fontSize={0.52}
+        color="#d6ecff"
+        anchorX="center"
+        anchorY="middle"
+        letterSpacing={0.16}
+      >
+        REDROCK FIELD STATION
+      </Text>
+      <Text
+        position={[0, 9.72, -19.52]}
+        fontSize={0.24}
+        color="#7fb8e8"
+        anchorX="center"
+        anchorY="middle"
+        letterSpacing={0.4}
+      >
+        iLab Africa · Applied Analytics
+      </Text>
 
       {/* Entrance overhang */}
       <mesh position={[0, 3.2, -14]} castShadow receiveShadow>
@@ -141,10 +181,10 @@ const ExteriorEnvironment = () => {
         </group>
       ))}
 
-      {/* Grass verges */}
-      {[[-9, -6], [9, -6], [-16, 14], [16, 14], [-22, 28], [22, 28]].map(([x, z], i) => (
-        <mesh key={i} rotation={[-Math.PI / 2, 0, 0]} position={[x, 0.01, z]}>
-          <planeGeometry args={[8, 12]} />
+      {/* Grass verges flanking the road, clear of the forecourt */}
+      {[[-12, 14], [12, 14], [-12, 34], [12, 34], [-16, 54], [16, 54]].map(([x, z], i) => (
+        <mesh key={i} rotation={[-Math.PI / 2, 0, 0]} position={[x, 0.03, z]}>
+          <planeGeometry args={[10, 14]} />
           <meshStandardMaterial color="#5a8a3a" roughness={1} />
         </mesh>
       ))}

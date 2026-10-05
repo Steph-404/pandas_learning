@@ -319,8 +319,8 @@ export const STORYLINE: Stage[] = [
           "text": "NaN and NaN"
         }
       ],
-      "correctOptionId": "A",
-      "explanation": "By default, pandas skip NaN in calculations. `sum()` adds 10 + 30 = 40. `mean()` divides 40 by 2 (not 3) = 20... wait, actually `mean()` = 40/2 = 20. Let me recalculate: sum=40, mean=40/2=20. Actually the answer should be B. Let me correct: `s.sum()` = 40 (skips NaN), `s.mean()` = 40/2 = 20. So the answer is B.\n\n**Corrected Answer:** B (40 and 20)\n\n**Explanation:** `s.sum()` adds the non-NaN values: 10 + 30 = 40. `s.mean()` divides by the count of non-NaN values: 40 / 2 = 20. NaN is skipped entirely \u2014 it is not zero, it is \"we do not know.\" Replacing NaN with 0 would change your mean to 13.3, which is a different claim about the world."
+      "correctOptionId": "B",
+      "explanation": "`s.sum()` adds the non-NaN values: 10 + 30 = 40. `s.mean()` divides by the count of non-NaN values: 40 / 2 = 20. NaN is skipped entirely \u2014 it is not zero, it is \"we do not know.\" Replacing NaN with 0 would change your mean to 13.3, which is a different claim about the world."
     }
   },
   {
