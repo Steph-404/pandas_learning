@@ -169,22 +169,28 @@ export function AssistantModel({
       }
 
       case 'Talking': {
-        const g1 = Math.sin(t * 2.3);
-        const g2 = Math.sin(t * 3.1 + 1.2);
+        // Intermittent, alternating hand gestures instead of holding both
+        // hands up: each hand lifts on its own slow pulse and returns to a
+        // relaxed stance in between.
+        const gL = Math.pow(Math.max(0, Math.sin(t * 0.85 + 0.4)), 3);
+        const gR = Math.pow(Math.max(0, Math.sin(t * 1.05 + 2.3)), 3);
+        const headBob = Math.sin(t * 1.8);
         pose('hip', AXIS_Y, 0.02 * sway, null, 0, null, 0, 6, delta);
         pose('spine_01', AXIS_X, -0.02, null, 0, null, 0, 6, delta);
-        pose('spine_02', AXIS_X, 0.02 + 0.012 * breathe, AXIS_Y, 0.03 * g2, null, 0, 6, delta);
-        pose('spine_03', AXIS_Y, -0.04 + 0.03 * g1, null, 0, null, 0, 8, delta);
+        pose('spine_02', AXIS_X, 0.02 + 0.012 * breathe, AXIS_Y, 0.03 * headBob, null, 0, 6, delta);
+        pose('spine_03', AXIS_Y, -0.04 + 0.03 * gR - 0.03 * gL, null, 0, null, 0, 8, delta);
         pose('upperleg_l', AXIS_X, 0.02, null, 0, null, 0, 6, delta);
         pose('upperleg_r', AXIS_X, -0.03, null, 0, null, 0, 6, delta);
-        pose('upperarm_l', AXIS_X, -0.12 + 0.10 * Math.sin(t * 1.7 + 0.6), AXIS_Z, -0.12, null, 0, 7, delta);
-        pose('upperarm_r', AXIS_X, -0.10 + 0.10 * Math.sin(t * 1.9), AXIS_Z, 0.10, null, 0, 7, delta);
-        pose('lowerarm_l', AXIS_X, ELBOW_FORWARD - 0.45 + 0.25 * g1, AXIS_Z, -0.25, null, 0, 9, delta);
-        pose('lowerarm_r', AXIS_X, ELBOW_FORWARD - 0.35 + 0.3 * g2, AXIS_Z, 0.2, null, 0, 9, delta);
-        pose('hand_l', AXIS_Y, 0.15 * g2, AXIS_X, 0.1 * g1, null, 0, 9, delta);
-        pose('hand_r', AXIS_Y, -0.15 * g1, AXIS_X, 0.1 * g2, null, 0, 9, delta);
-        pose('jaw', AXIS_X, 0.05 + 0.05 * Math.max(0, Math.sin(t * 9.5)), null, 0, null, 0, 14, delta);
-        pose('head', AXIS_X, 0.02 * g2, AXIS_Y, 0.04 * g1, AXIS_Z, 0.03 * g2, 6, delta);
+        // Left arm: relaxed by default, lifts and opens as gL pulses.
+        pose('upperarm_l', AXIS_X, -0.10 * gL + 0.02 * Math.sin(t * 1.3), AXIS_Z, -0.03 + 0.14 * gL, AXIS_Y, -0.06 * gL, 7, delta);
+        pose('lowerarm_l', AXIS_X, ELBOW_FORWARD - 0.62 * gL, AXIS_Z, 0.10 * gL, null, 0, 9, delta);
+        pose('hand_l', AXIS_Y, 0.20 * gL * Math.sin(t * 3.1), AXIS_X, 0.15 * gL, null, 0, 9, delta);
+        // Right arm: same idea, offset timing.
+        pose('upperarm_r', AXIS_X, -0.10 * gR + 0.02 * Math.sin(t * 1.1 + 1.1), AXIS_Z, 0.03 - 0.14 * gR, AXIS_Y, 0.06 * gR, 7, delta);
+        pose('lowerarm_r', AXIS_X, ELBOW_FORWARD - 0.58 * gR, AXIS_Z, -0.10 * gR, null, 0, 9, delta);
+        pose('hand_r', AXIS_Y, -0.20 * gR * Math.sin(t * 3.3), AXIS_X, 0.15 * gR, null, 0, 9, delta);
+        pose('jaw', AXIS_X, 0.04 + 0.05 * Math.max(0, Math.sin(t * 9.5)), null, 0, null, 0, 14, delta);
+        pose('head', AXIS_X, 0.03 * headBob, AXIS_Y, 0.05 * Math.sin(t * 0.5), AXIS_Z, 0.03 * gR - 0.03 * gL, 6, delta);
         break;
       }
 
