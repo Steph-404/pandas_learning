@@ -16,34 +16,10 @@ const AXIS_X = new THREE.Vector3(1, 0, 0);
 const AXIS_Y = new THREE.Vector3(0, 1, 0);
 const AXIS_Z = new THREE.Vector3(0, 0, 1);
 
-// Bind pose is close to a T-pose: bring the arms down to a natural stance.
-//  - shoulders drop slightly with the arms (otherwise the deltoid stays
-//    horizontal and the arm looks like it grows out of the torso),
-//  - the upper arm is twisted inward so the palms face the thighs instead
-//    of forward (the bind pose has palms facing forward).
-const devNum = (key: string, fallback: number) => {
-  if (typeof window === 'undefined') return fallback;
-  const raw = new URLSearchParams(window.location.search).get(key);
-  if (raw === null) return fallback;
-  const value = Number(raw);
-  return Number.isFinite(value) ? value : fallback;
-};
-
-const SHOULDER_DROP = devNum('sdrop', 0.10);
-const ARM_DOWN = devNum('adown', -1.05);
-const ARM_TWIST = devNum('twist', 1.5);
-const ELBOW_FORWARD = devNum('elbow', -0.25);
-const FOREARM_FLARE = devNum('flare', 0.0);
-const WRIST_FORWARD = devNum('wristx', 0);
-const HAND_ALIGN = devNum('handz', 0);
-
-/** Slight relaxed curl for the four fingers of one hand. */
-const FINGER_CURL: [string, number][] = [
-  ['index_01', -0.30], ['index_02', -0.40],
-  ['middle_01', -0.32], ['middle_02', -0.42],
-  ['ring_01', -0.34], ['ring_02', -0.45],
-  ['pinky_01', -0.36], ['pinky_02', -0.48],
-];
+// Carla's rest pose is baked into the GLB itself: arms hang in a natural A-pose
+// (9 deg from vertical, near-straight elbows, palms facing the thighs, fingers
+// gently curled), so there is nothing to correct in the bind pose at runtime.
+// Axes below are world axes of the imported rig (Y up, Z forward, X her left).
 
 const _qA = new THREE.Quaternion();
 const _qB = new THREE.Quaternion();
@@ -84,53 +60,6 @@ export function AssistantModel({
     for (const [name, bone] of Object.entries(bones)) {
       restPos[name] = bone.position.clone();
       base[name] = bone.quaternion.clone();
-    }
-
-    // Rotate a bone around a WORLD axis as measured in the bind pose. This is
-    // robust regardless of how the rig author oriented the bone rolls.
-    const rotateBind = (name: string, axis: THREE.Vector3, angle: number) => {
-      const bone = bones[name];
-      if (!bone) return;
-      bone.updateWorldMatrix(true, false);
-      bone.getWorldQuaternion(_qA);
-      _axis.copy(axis).applyQuaternion(_qB.copy(_qA).invert()).normalize();
-      base[name].multiply(_qB.setFromAxisAngle(_axis, angle));
-      bone.quaternion.copy(base[name]);
-    };
-
-    // Twist a bone about ITS OWN length axis (a true twist). The axis is
-    // derived from the bone's first child joint (left arm bones run along
-    // local +X, right arm bones along local -X in this rig), so the roll is
-    // mirrored correctly on both sides.
-    const twistBind = (name: string, angle: number) => {
-      const bone = bones[name];
-      if (!bone) return;
-      bone.updateWorldMatrix(true, false);
-      bone.getWorldQuaternion(_qA);
-      const child = bone.children.find((c) => (c as THREE.Bone).isBone) as THREE.Bone | undefined;
-      const dir = child
-        ? new THREE.Vector3().copy(child.position).normalize().applyQuaternion(_qA)
-        : new THREE.Vector3(1, 0, 0).applyQuaternion(_qA);
-      rotateBind(name, dir, angle);
-    };
-
-    rotateBind('shoulder_l', AXIS_Z, -SHOULDER_DROP);
-    rotateBind('shoulder_r', AXIS_Z, SHOULDER_DROP);
-    rotateBind('upperarm_l', AXIS_Z, ARM_DOWN);
-    rotateBind('upperarm_r', AXIS_Z, -ARM_DOWN);
-    twistBind('upperarm_l', ARM_TWIST);
-    twistBind('upperarm_r', -ARM_TWIST);
-    rotateBind('lowerarm_l', AXIS_X, ELBOW_FORWARD);
-    rotateBind('lowerarm_r', AXIS_X, ELBOW_FORWARD);
-    rotateBind('lowerarm_l', AXIS_Z, FOREARM_FLARE);
-    rotateBind('lowerarm_r', AXIS_Z, -FOREARM_FLARE);
-    rotateBind('hand_l', AXIS_X, WRIST_FORWARD);
-    rotateBind('hand_r', AXIS_X, WRIST_FORWARD);
-    rotateBind('hand_l', AXIS_Z, HAND_ALIGN);
-    rotateBind('hand_r', AXIS_Z, -HAND_ALIGN);
-    for (const [finger, angle] of FINGER_CURL) {
-      rotateBind(`${finger}_l`, AXIS_Z, angle);
-      rotateBind(`${finger}_r`, AXIS_Z, -angle);
     }
 
     clone.updateMatrixWorld(true);
@@ -194,8 +123,8 @@ export function AssistantModel({
         pose('foot_r', AXIS_X, -0.28 * Math.sin(ph + Math.PI - 0.4), null, 0, null, 0, 10, delta);
         pose('upperarm_l', AXIS_X, 0.42 * swing, AXIS_Y, -0.05, null, 0, 10, delta);
         pose('upperarm_r', AXIS_X, -0.42 * swing, AXIS_Y, 0.05, null, 0, 10, delta);
-        pose('lowerarm_l', AXIS_X, ELBOW_FORWARD - 0.12 - 0.10 * swing, null, 0, null, 0, 10, delta);
-        pose('lowerarm_r', AXIS_X, ELBOW_FORWARD - 0.12 + 0.10 * swing, null, 0, null, 0, 10, delta);
+        pose('lowerarm_l', AXIS_X, -0.12 - 0.10 * swing, null, 0, null, 0, 10, delta);
+        pose('lowerarm_r', AXIS_X, -0.12 + 0.10 * swing, null, 0, null, 0, 10, delta);
         const hipBone = rig.bones['hip'];
         if (hipBone) {
           const bob = 0.028 * (0.5 - 0.5 * Math.cos(ph * 2));
@@ -214,7 +143,7 @@ export function AssistantModel({
         pose('upperleg_r', AXIS_X, -0.03, null, 0, null, 0, 6, delta);
         // Left arm relaxed at her side.
         pose('upperarm_l', AXIS_X, 0.05, AXIS_Z, -0.05, null, 0, 6, delta);
-        pose('lowerarm_l', AXIS_X, ELBOW_FORWARD, null, 0, null, 0, 6, delta);
+        pose('lowerarm_l', AXIS_X, 0, null, 0, null, 0, 6, delta);
         // Right arm raised out to the side, forearm up, hand waving.
         pose('upperarm_r', AXIS_Z, -1.48 + 0.10 * wave, AXIS_X, -0.25, AXIS_Y, 0.15, 7, delta);
         pose('lowerarm_r', AXIS_Z, -1.42 + 0.28 * wave, AXIS_X, 0.10 * wave, null, 0, 12, delta);
@@ -238,11 +167,11 @@ export function AssistantModel({
         pose('upperleg_r', AXIS_X, -0.03, null, 0, null, 0, 6, delta);
         // Left arm: relaxed by default, lifts and opens as gL pulses.
         pose('upperarm_l', AXIS_X, -0.10 * gL + 0.02 * Math.sin(t * 1.3), AXIS_Z, -0.03 + 0.14 * gL, AXIS_Y, -0.06 * gL, 7, delta);
-        pose('lowerarm_l', AXIS_X, ELBOW_FORWARD - 0.62 * gL, AXIS_Z, 0.10 * gL, null, 0, 9, delta);
+        pose('lowerarm_l', AXIS_X, -0.62 * gL, AXIS_Z, 0.10 * gL, null, 0, 9, delta);
         pose('hand_l', AXIS_Y, 0.20 * gL * Math.sin(t * 3.1), AXIS_X, 0.15 * gL, null, 0, 9, delta);
         // Right arm: same idea, offset timing.
         pose('upperarm_r', AXIS_X, -0.10 * gR + 0.02 * Math.sin(t * 1.1 + 1.1), AXIS_Z, 0.03 - 0.14 * gR, AXIS_Y, 0.06 * gR, 7, delta);
-        pose('lowerarm_r', AXIS_X, ELBOW_FORWARD - 0.58 * gR, AXIS_Z, -0.10 * gR, null, 0, 9, delta);
+        pose('lowerarm_r', AXIS_X, -0.58 * gR, AXIS_Z, -0.10 * gR, null, 0, 9, delta);
         pose('hand_r', AXIS_Y, -0.20 * gR * Math.sin(t * 3.3), AXIS_X, 0.15 * gR, null, 0, 9, delta);
         pose('jaw', AXIS_X, 0.04 + 0.05 * Math.max(0, Math.sin(t * 9.5)), null, 0, null, 0, 14, delta);
         pose('head', AXIS_X, 0.03 * headBob, AXIS_Y, 0.05 * Math.sin(t * 0.5), AXIS_Z, 0.03 * gR - 0.03 * gL, 6, delta);
@@ -259,8 +188,8 @@ export function AssistantModel({
         pose('upperleg_r', AXIS_X, -0.02, AXIS_Y, 0.03 * sway, null, 0, 5, delta);
         pose('upperarm_l', AXIS_X, 0.03 * Math.sin(t * 1.2), AXIS_Z, -0.03, null, 0, 5, delta);
         pose('upperarm_r', AXIS_X, 0.03 * Math.sin(t * 1.2 + 1.4), AXIS_Z, 0.03, null, 0, 5, delta);
-        pose('lowerarm_l', AXIS_X, ELBOW_FORWARD, null, 0, null, 0, 5, delta);
-        pose('lowerarm_r', AXIS_X, ELBOW_FORWARD, null, 0, null, 0, 5, delta);
+        pose('lowerarm_l', AXIS_X, 0, null, 0, null, 0, 5, delta);
+        pose('lowerarm_r', AXIS_X, 0, null, 0, null, 0, 5, delta);
         pose('head', AXIS_Y, 0.05 * Math.sin(t * 0.45), AXIS_X, 0.015 * Math.sin(t * 1.1), null, 0, 4, delta);
         break;
       }
