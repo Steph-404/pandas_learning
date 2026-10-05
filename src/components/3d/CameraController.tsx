@@ -1,7 +1,8 @@
 import { useEffect, useRef } from 'react';
-import { useThree } from '@react-three/fiber';
+import { useThree, useFrame } from '@react-three/fiber';
 import { useGameStore } from '../../store/gameStore';
 import { STORYLINE } from '../../data/storyline';
+import { assistantLive } from './assistantShared';
 import anime from 'animejs';
 import * as THREE from 'three';
 
@@ -41,6 +42,26 @@ export const CameraController = () => {
   const dayAnimatingRef = useRef(false);
   const lastDayRef = useRef(0);
 
+  // Dev/testing: ?cam=closeup locks the camera in front of the assistant so
+  // the rig, walk cycle and gestures can be inspected up close.
+  // Optional camx/camz override the camera offset from her.
+  const searchParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
+  const closeup = searchParams?.get('cam') === 'closeup';
+  const closeDx = Number(searchParams?.get('camx') ?? 0.75);
+  const closeDz = Number(searchParams?.get('camz') ?? 2.45);
+
+  useFrame(() => {
+    if (!closeup) return;
+    camera.position.set(assistantLive.x + closeDx, 1.32, assistantLive.z + closeDz);
+    currentLookAt.set(assistantLive.x, 1.22, assistantLive.z);
+    camera.lookAt(currentLookAt);
+    const perspective = camera as THREE.PerspectiveCamera;
+    if (perspective.isPerspectiveCamera && Math.abs(perspective.fov - 42) > 0.01) {
+      perspective.fov = 42;
+      perspective.updateProjectionMatrix();
+    }
+  });
+
   const WAYPOINTS: Record<string, Waypoint> = {
     CAR_ARRIVING: { pos: [0, 1.5, 50], lookAt: [0, 1.5, 22], duration: 0 },
     ALIGHTING: { pos: [0, 1.6, 0], lookAt: [0, 1.6, -11.6], duration: 2500, easing: 'easeInOutSine' },
@@ -78,6 +99,7 @@ export const CameraController = () => {
   };
 
   useEffect(() => {
+    if (closeup) return;
     const target = WAYPOINTS[sequence];
     if (!target || animatingRef.current) return;
 
@@ -161,6 +183,7 @@ export const CameraController = () => {
 
   // Re-frame the camera when the assessment moves to a new day's work area.
   useEffect(() => {
+    if (closeup) return;
     if (sequence !== 'QUESTION_ACTIVE') return;
     const day = dayFromStage(currentStageId);
     if (day === lastDayRef.current) return;

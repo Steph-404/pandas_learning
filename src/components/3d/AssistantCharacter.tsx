@@ -6,6 +6,7 @@ import { useGameStore } from '../../store/gameStore';
 import { STORYLINE } from '../../data/storyline';
 import { AssistantModel } from './AssistantModel';
 import type { AssistantAnim } from './AssistantModel';
+import { assistantLive } from './assistantShared';
 
 type Vec3 = [number, number, number];
 
@@ -107,6 +108,8 @@ export const AssistantCharacter = () => {
     if (!group) return;
     const delta = Math.min(rawDelta, 0.1);
     const moveDelta = Math.min(rawDelta, 0.5);
+    assistantLive.x = group.position.x;
+    assistantLive.z = group.position.z;
 
     // --- Waypoint following ---
     let moved = false;
