@@ -1,6 +1,7 @@
-import React, { Suspense } from 'react';
-import { Canvas } from '@react-three/fiber';
-import { Sky, Environment, Clouds, Cloud, Text } from '@react-three/drei';
+import React, { Suspense, useEffect } from 'react';
+import { Canvas, useThree } from '@react-three/fiber';
+import { Sky, Clouds, Cloud, Text } from '@react-three/drei';
+import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 import * as THREE from 'three';
 
 import { CameraController } from './CameraController';
@@ -199,6 +200,26 @@ const ExteriorEnvironment = () => {
 
 
 
+// Local, network-free image-based lighting (no CDN dependency that can
+// blank the canvas if the request is slow or offline).
+const LocalEnvironment = () => {
+  const gl = useThree((state) => state.gl);
+  const scene = useThree((state) => state.scene);
+
+  useEffect(() => {
+    const pmrem = new THREE.PMREMGenerator(gl);
+    const envTexture = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+    scene.environment = envTexture;
+    return () => {
+      scene.environment = null;
+      envTexture.dispose();
+      pmrem.dispose();
+    };
+  }, [gl, scene]);
+
+  return null;
+};
+
 const CarSequence = () => {
   const sequence = useGameStore(state => state.sequence);
   const setSequence = useGameStore(state => state.setSequence);
@@ -291,8 +312,8 @@ export const Scene: React.FC<{ children: React.ReactNode }> = ({ children }) => 
           <Cloud position={[120, 70, -200]} seed={3} bounds={[120, 25, 60]} volume={8} color="#ffe8d6" opacity={0.6} />
         </Clouds>
 
-        {/* Image-based environment lighting */}
-        <Environment preset="park" />
+        {/* Image-based environment lighting (bundled RoomEnvironment) */}
+        <LocalEnvironment />
 
         {/* ── GOLDEN HOUR LIGHTING ── */}
         <ambientLight intensity={1.8} color="#ffe8d6" />

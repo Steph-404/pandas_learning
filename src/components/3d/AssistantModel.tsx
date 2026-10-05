@@ -17,8 +17,15 @@ const AXIS_Y = new THREE.Vector3(0, 1, 0);
 const AXIS_Z = new THREE.Vector3(0, 0, 1);
 
 // Bind pose is close to a T-pose: bring the arms down to a natural stance.
-const ARM_DOWN = -1.28;
+//  - shoulders drop slightly with the arms (otherwise the deltoid stays
+//    horizontal and the arm looks like it grows out of the torso),
+//  - the upper arm is twisted inward so the palms face the thighs instead
+//    of forward (the bind pose has palms facing forward).
+const SHOULDER_DROP = 0.12;
+const ARM_DOWN = -1.15;
+const ARM_TWIST = 1.45;
 const ELBOW_FORWARD = -0.28;
+const FOREARM_FLARE = 0.10;
 
 const _qA = new THREE.Quaternion();
 const _qB = new THREE.Quaternion();
@@ -73,10 +80,16 @@ export function AssistantModel({
       bone.quaternion.copy(base[name]);
     };
 
+    rotateBind('shoulder_l', AXIS_Z, -SHOULDER_DROP);
+    rotateBind('shoulder_r', AXIS_Z, SHOULDER_DROP);
     rotateBind('upperarm_l', AXIS_Z, ARM_DOWN);
     rotateBind('upperarm_r', AXIS_Z, -ARM_DOWN);
+    rotateBind('upperarm_l', AXIS_Y, -ARM_TWIST);
+    rotateBind('upperarm_r', AXIS_Y, ARM_TWIST);
     rotateBind('lowerarm_l', AXIS_X, ELBOW_FORWARD);
     rotateBind('lowerarm_r', AXIS_X, ELBOW_FORWARD);
+    rotateBind('lowerarm_l', AXIS_Z, FOREARM_FLARE);
+    rotateBind('lowerarm_r', AXIS_Z, -FOREARM_FLARE);
 
     clone.updateMatrixWorld(true);
     for (const [name, bone] of Object.entries(bones)) {
