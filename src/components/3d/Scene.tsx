@@ -214,6 +214,57 @@ const CarSequence = () => {
 };
 
 export const Scene: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const webglAvailable = React.useMemo(() => {
+    try {
+      const test = document.createElement('canvas');
+      return !!(test.getContext('webgl2') || test.getContext('webgl'));
+    } catch {
+      return false;
+    }
+  }, []);
+
+  if (!webglAvailable) {
+    return (
+      <div
+        style={{
+          width: '100vw',
+          height: '100vh',
+          background: 'linear-gradient(135deg, #040c1a 0%, #081428 50%, #040c1a 100%)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          fontFamily: '"Segoe UI", system-ui, sans-serif',
+          color: '#d8eaff',
+          padding: 24,
+        }}
+      >
+        <div
+          style={{
+            maxWidth: 560,
+            background: 'rgba(12,28,56,0.7)',
+            border: '1px solid rgba(40,120,220,0.35)',
+            borderRadius: 12,
+            padding: '32px 36px',
+          }}
+        >
+          <div style={{ fontSize: '0.72rem', letterSpacing: '0.14em', color: '#64c8ff', marginBottom: 10 }}>
+            REDROCK FIELD STATION
+          </div>
+          <h1 style={{ fontSize: '1.4rem', margin: '0 0 12px' }}>This browser cannot run WebGL</h1>
+          <p style={{ lineHeight: 1.7, color: '#a8c4e0', margin: '0 0 16px' }}>
+            The 3D field lab needs WebGL, and this browser could not create a WebGL context.
+            This is a browser/graphics-driver setting, not a problem with the app.
+          </p>
+          <ul style={{ lineHeight: 1.8, color: '#a8c4e0', margin: 0, paddingLeft: 20 }}>
+            <li>Open the app in Chrome or Edge (works out of the box), or</li>
+            <li>In Firefox: Settings &gt; General &gt; Performance, enable hardware acceleration, then restart, or</li>
+            <li>Update your graphics driver if acceleration is enabled but still blocked.</li>
+          </ul>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div style={{ width: '100vw', height: '100vh', position: 'relative', backgroundColor: '#87CEEB' }}>
       <Canvas
