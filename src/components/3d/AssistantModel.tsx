@@ -147,11 +147,12 @@ case 'Wave': {
         // Right arm raised out to the side, forearm up, hand waving.
         // Tuned against the baked A-pose rig: AXIS_Z is the abduction axis,
         // so the upper arm swings out with it and the elbow bends on the same
-        // axis to bring the forearm upright. The wave itself is a wrist roll
-        // about the forearm axis (now world Y), not an arm windmill.
-        pose('upperarm_r', AXIS_Z, -1.2, AXIS_X, 0, AXIS_Y, 0, 7, delta);
-        pose('lowerarm_r', AXIS_Z, -1.1 + 0.04 * wave, AXIS_X, 0, AXIS_Y, 0, 12, delta);
-        pose('hand_r', AXIS_Y, 0.6 + 0.30 * wave, null, 0, null, 0, 12, delta);
+        // axis to bring the forearm upright. The wave is driven by the elbow -
+        // the forearm swings side to side - with only a small trailing wrist
+        // follow-through, otherwise it reads as twisting the wrist.
+        pose('upperarm_r', AXIS_Z, -1.2 + 0.03 * wave, AXIS_X, 0, AXIS_Y, 0, 7, delta);
+        pose('lowerarm_r', AXIS_Z, -1.1 + 0.26 * wave, AXIS_X, 0, AXIS_Y, 0, 12, delta);
+        pose('hand_r', AXIS_Y, 0.6 + 0.09 * Math.sin(t * 6.0 - 0.6), null, 0, null, 0, 12, delta);
         pose('head', AXIS_X, -0.06, AXIS_Y, -0.10, AXIS_Z, 0.05, 6, delta);
         break;
       }
