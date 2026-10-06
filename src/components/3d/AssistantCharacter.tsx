@@ -6,7 +6,7 @@ import { useGameStore } from '../../store/gameStore';
 import { STORYLINE } from '../../data/storyline';
 import { AssistantModel } from './AssistantModel';
 import type { AssistantAnim } from './AssistantModel';
-import { assistantLive } from './assistantShared';
+import { assistantLive, assistantWave } from './assistantShared';
 
 type Vec3 = [number, number, number];
 
@@ -157,6 +157,7 @@ export const AssistantCharacter = () => {
     if (walking.current) desired = 'Walk';
     else if (waveTime.current > 0 && waveTime.current < 3.4) desired = 'Wave';
     else if (isQuestionActive || isDialogueActive) desired = 'Talking';
+    assistantWave.t = desired === 'Wave' ? waveTime.current : 0;
     if (animRef.current !== desired) {
       animRef.current = desired;
       setAnimation(desired);

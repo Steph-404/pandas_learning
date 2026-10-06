@@ -3,6 +3,7 @@ import { useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { useGLTF } from '@react-three/drei';
 import { SkeletonUtils } from 'three-stdlib';
+import { assistantWave } from './assistantShared';
 
 export type AssistantAnim = 'Idle' | 'Walk' | 'Wave' | 'Talking';
 
@@ -20,6 +21,12 @@ const AXIS_Z = new THREE.Vector3(0, 0, 1);
 // (9 deg from vertical, near-straight elbows, palms facing the thighs, fingers
 // gently curled), so there is nothing to correct in the bind pose at runtime.
 // Axes below are world axes of the imported rig (Y up, Z forward, X her left).
+
+/** Ease 0 -> 1 across [edge0, edge1], used to phase the wave's lead-in. */
+const smoothstep = (edge0: number, edge1: number, x: number) => {
+  const p = THREE.MathUtils.clamp((x - edge0) / (edge1 - edge0), 0, 1);
+  return p * p * (3 - 2 * p);
+};
 
 const _qA = new THREE.Quaternion();
 const _qB = new THREE.Quaternion();
@@ -134,7 +141,15 @@ export function AssistantModel({
       }
 
 case 'Wave': {
-        const wave = Math.sin(t * 6.0);
+        // Greeting reads as one gesture in two beats: the wrist turns first so
+        // the palm comes round to face the viewer, then the waving starts.
+        // Phased off the wave clock rather than the global clock so the
+        // lead-in always plays from the start of the gesture.
+        const wt = assistantWave.t;
+        const intro = smoothstep(0.05, 0.55, wt);
+        const waveOn = smoothstep(0.55, 0.95, wt);
+        const wave = Math.sin((wt - 0.55) * 7.4);
+
         pose('hip', AXIS_Y, 0.02 * sway, null, 0, null, 0, 6, delta);
         pose('spine_01', AXIS_X, -0.02, AXIS_Y, 0.03, null, 0, 6, delta);
         pose('spine_02', AXIS_X, 0.015 * breathe, AXIS_Y, -0.04, null, 0, 6, delta);
@@ -148,11 +163,13 @@ case 'Wave': {
         // Tuned against the baked A-pose rig: AXIS_Z is the abduction axis,
         // so the upper arm swings out with it and the elbow bends on the same
         // axis to bring the forearm upright. The wave is driven by the elbow -
-        // the forearm swings side to side - with only a small trailing wrist
-        // follow-through, otherwise it reads as twisting the wrist.
-        pose('upperarm_r', AXIS_Z, -1.2 + 0.03 * wave, AXIS_X, 0, AXIS_Y, 0, 7, delta);
-        pose('lowerarm_r', AXIS_Z, -1.1 + 0.26 * wave, AXIS_X, 0, AXIS_Y, 0, 12, delta);
-        pose('hand_r', AXIS_Y, 0.6 + 0.09 * Math.sin(t * 6.0 - 0.6), null, 0, null, 0, 12, delta);
+        // the forearm swings side to side - with the wrist leading the palm
+        // round first and then only trailing, so it never reads as a twist.
+        pose('upperarm_r', AXIS_Z, -1.2 + 0.03 * wave * waveOn, AXIS_X, 0, AXIS_Y, 0, 7, delta);
+        pose('lowerarm_r', AXIS_Z, -1.1 + 0.26 * wave * waveOn, AXIS_X, 0, AXIS_Y, 0, 12, delta);
+        // Wrist: turns the palm to the viewer through the lead-in, then trails.
+        pose('hand_r', AXIS_Y, 0.62 * intro + 0.09 * Math.sin(wt * 7.4 - 0.6) * waveOn,
+          null, 0, null, 0, 12, delta);
         pose('head', AXIS_X, -0.06, AXIS_Y, -0.10, AXIS_Z, 0.05, 6, delta);
         break;
       }
