@@ -133,7 +133,7 @@ export function AssistantModel({
         break;
       }
 
-      case 'Wave': {
+case 'Wave': {
         const wave = Math.sin(t * 6.0);
         pose('hip', AXIS_Y, 0.02 * sway, null, 0, null, 0, 6, delta);
         pose('spine_01', AXIS_X, -0.02, AXIS_Y, 0.03, null, 0, 6, delta);
@@ -145,9 +145,13 @@ export function AssistantModel({
         pose('upperarm_l', AXIS_X, 0.05, AXIS_Z, -0.05, null, 0, 6, delta);
         pose('lowerarm_l', AXIS_X, 0, null, 0, null, 0, 6, delta);
         // Right arm raised out to the side, forearm up, hand waving.
-        pose('upperarm_r', AXIS_Z, -1.48 + 0.10 * wave, AXIS_X, -0.25, AXIS_Y, 0.15, 7, delta);
-        pose('lowerarm_r', AXIS_Z, -1.42 + 0.28 * wave, AXIS_X, 0.10 * wave, null, 0, 12, delta);
-        pose('hand_r', AXIS_Z, 0.20 * wave, null, 0, null, 0, 12, delta);
+        // Tuned against the baked A-pose rig: AXIS_Z is the abduction axis,
+        // so the upper arm swings out with it and the elbow bends on the same
+        // axis to bring the forearm upright. The wave itself is a wrist roll
+        // about the forearm axis (now world Y), not an arm windmill.
+        pose('upperarm_r', AXIS_Z, -1.2, AXIS_X, 0, AXIS_Y, 0, 7, delta);
+        pose('lowerarm_r', AXIS_Z, -1.1 + 0.04 * wave, AXIS_X, 0, AXIS_Y, 0, 12, delta);
+        pose('hand_r', AXIS_Y, 0.6 + 0.30 * wave, null, 0, null, 0, 12, delta);
         pose('head', AXIS_X, -0.06, AXIS_Y, -0.10, AXIS_Z, 0.05, 6, delta);
         break;
       }

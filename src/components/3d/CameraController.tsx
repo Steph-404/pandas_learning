@@ -49,11 +49,13 @@ export const CameraController = () => {
   const closeup = searchParams?.get('cam') === 'closeup';
   const closeDx = Number(searchParams?.get('camx') ?? 0.75);
   const closeDz = Number(searchParams?.get('camz') ?? 2.45);
+  const closeY = Number(searchParams?.get('camy') ?? 1.32);
+  const closeLookY = Number(searchParams?.get('camylook') ?? 1.22);
 
   useFrame(() => {
     if (!closeup) return;
-    camera.position.set(assistantLive.x + closeDx, 1.32, assistantLive.z + closeDz);
-    currentLookAt.set(assistantLive.x, 1.22, assistantLive.z);
+    camera.position.set(assistantLive.x + closeDx, closeY, assistantLive.z + closeDz);
+    currentLookAt.set(assistantLive.x, closeLookY, assistantLive.z);
     camera.lookAt(currentLookAt);
     const perspective = camera as THREE.PerspectiveCamera;
     if (perspective.isPerspectiveCamera && Math.abs(perspective.fov - 42) > 0.01) {
