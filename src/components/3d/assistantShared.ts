@@ -2,7 +2,9 @@
 export const assistantLive = { x: 1.8, z: -11.4 };
 
 /**
- * Seconds elapsed since the wave gesture started (0 when not waving), so the
- * model can phase the wrist lead-in ahead of the waving itself.
+ * Wave hand-off. The character only *requests* a wave; the model owns the
+ * duration timer. Timing it in the character counted frames while the GLB was
+ * still loading, which ate most of the window before the rig ever appeared -
+ * leaving barely a second of gesture on screen.
  */
-export const assistantWave = { t: 0 };
+export const assistantWave = { finished: false };

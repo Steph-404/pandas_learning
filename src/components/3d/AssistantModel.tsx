@@ -28,6 +28,9 @@ const smoothstep = (edge0: number, edge1: number, x: number) => {
   return p * p * (3 - 2 * p);
 };
 
+/** Total length of the greeting wave, timed in rendered frames. */
+const WAVE_DURATION = 3.4;
+
 const _qA = new THREE.Quaternion();
 const _qB = new THREE.Quaternion();
 const _qTarget = new THREE.Quaternion();
@@ -106,6 +109,14 @@ export function AssistantModel({
     bone.quaternion.slerp(_qTarget, 1 - Math.exp(-k * delta));
   };
 
+  // Seconds since the wave first rendered. The gesture is phased off this
+  // rather than the parent character's wave clock: that clock started when the
+  // character mounted and kept running while this model's GLB was still
+  // loading, so it could already be past the wrist lead-in by the time the rig
+  // appeared - and the window could be over entirely. Counting in rendered
+  // frames guarantees the whole gesture, lead-in included, actually plays.
+  const waveClock = useRef(0);
+
   useFrame((state, rawDelta) => {
     const delta = Math.min(rawDelta, 0.05);
     const t = state.clock.elapsedTime;
@@ -114,6 +125,13 @@ export function AssistantModel({
 
     const breathe = Math.sin(t * 1.6) * 0.5 + 0.5;
     const sway = Math.sin(t * 0.7);
+
+    // Advance the wave clock only while the wave is actually on screen, and own
+    // the duration here so it is measured in rendered frames.
+    waveClock.current = animation === 'Wave' ? waveClock.current + delta : 0;
+    if (animation === 'Wave' && waveClock.current > WAVE_DURATION) {
+      assistantWave.finished = true;
+    }
 
     switch (animation) {
       case 'Walk': {
@@ -145,7 +163,7 @@ case 'Wave': {
         // the palm comes round to face the viewer, then the waving starts.
         // Phased off the wave clock rather than the global clock so the
         // lead-in always plays from the start of the gesture.
-        const wt = assistantWave.t;
+        const wt = waveClock.current;
         const intro = smoothstep(0.05, 0.55, wt);
         const waveOn = smoothstep(0.55, 0.95, wt);
         const wave = Math.sin((wt - 0.55) * 7.4);

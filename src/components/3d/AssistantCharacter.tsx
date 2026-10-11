@@ -81,7 +81,7 @@ export const AssistantCharacter = () => {
 
   const waypointIndex = useRef(0);
   const walking = useRef(false);
-  const waveTime = useRef(0);
+  const waveRequested = useRef(false);
   const [animation, setAnimation] = useState<AssistantAnim>('Idle');
   const animRef = useRef<AssistantAnim>('Idle');
 
@@ -99,7 +99,10 @@ export const AssistantCharacter = () => {
 
   useEffect(() => {
     if (sequence === 'GREETING' || sequence === 'FAREWELL') {
-      waveTime.current = 0.0001;
+      // Request the wave; the model runs its own duration timer so the gesture
+      // is measured in rendered frames rather than while the rig loads.
+      waveRequested.current = true;
+      assistantWave.finished = false;
     }
   }, [sequence]);
 
@@ -151,13 +154,10 @@ export const AssistantCharacter = () => {
       }
     }
 
-    if (waveTime.current > 0) waveTime.current += delta;
-
     let desired: AssistantAnim = 'Idle';
     if (walking.current) desired = 'Walk';
-    else if (waveTime.current > 0 && waveTime.current < 3.4) desired = 'Wave';
+    else if (waveRequested.current && !assistantWave.finished) desired = 'Wave';
     else if (isQuestionActive || isDialogueActive) desired = 'Talking';
-    assistantWave.t = desired === 'Wave' ? waveTime.current : 0;
     if (animRef.current !== desired) {
       animRef.current = desired;
       setAnimation(desired);
