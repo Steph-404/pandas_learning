@@ -31,8 +31,25 @@ const smoothstep = (edge0: number, edge1: number, x: number) => {
 /** Total length of the greeting wave, timed in rendered frames. */
 const WAVE_DURATION = 3.4;
 
-/** Palm-facing roll for the waving hand (rolls about the raised forearm axis). */
-const WAVE_PALM = 2.0;
+/**
+ * Wrist roll that brings the waving palm square to the viewer, measured by
+ * sweeping the roll against a reference: below ~2.8 the thumb sits on the
+ * wrong side of the fingers, which is the back of the hand.
+ */
+const WAVE_PALM = 3.3;
+
+/** Hand + finger bones, eased back to rest when an animation does not use them. */
+const HAND_BONES = [
+  'hand_l', 'hand_r',
+  'index_01_l', 'index_02_l', 'index_03_l',
+  'middle_01_l', 'middle_02_l', 'middle_03_l',
+  'ring_01_l', 'ring_02_l', 'ring_03_l',
+  'pinky_01_l', 'pinky_02_l', 'pinky_03_l',
+  'index_01_r', 'index_02_r', 'index_03_r',
+  'middle_01_r', 'middle_02_r', 'middle_03_r',
+  'ring_01_r', 'ring_02_r', 'ring_03_r',
+  'pinky_01_r', 'pinky_02_r', 'pinky_03_r',
+];
 
 const _qA = new THREE.Quaternion();
 const _qB = new THREE.Quaternion();
@@ -85,6 +102,8 @@ export function AssistantModel({
 
   const phase = useRef(0);
   const blinkState = useRef({ timer: 2.5, t: 0 });
+  // Bones driven this frame; anything left out eases back to rest below.
+  const posedThisFrame = new Set<string>();
 
   const pose = (
     name: string,
@@ -93,6 +112,7 @@ export function AssistantModel({
     ax3: THREE.Vector3 | null, a3: number,
     k: number, delta: number,
   ) => {
+    posedThisFrame.add(name);
     const bone = rig.bones[name];
     const baseQ = rig.base[name];
     const worldQ = rig.worldAtBase[name];
@@ -121,6 +141,7 @@ export function AssistantModel({
   const waveClock = useRef(0);
 
   useFrame((state, rawDelta) => {
+    posedThisFrame.clear();
     const delta = Math.min(rawDelta, 0.05);
     const t = state.clock.elapsedTime;
     phase.current += delta * 7.2;
@@ -276,6 +297,17 @@ case 'Wave': {
       );
       pose('neck', AXIS_Y, yaw * 0.45, AXIS_X, pitch * 0.4, null, 0, 6, delta);
       pose('head', AXIS_Y, yaw * 0.35, AXIS_X, pitch * 0.35, null, 0, 6, delta);
+    }
+
+    // --- Return hands to rest ---
+    // pose() only eases the bones it is handed, so a bone omitted from a
+    // branch keeps whatever rotation it last had. Without this the waving
+    // hand stayed rolled over after the greeting ended. Any hand not driven
+    // by the current animation eases back to neutral here.
+    if (animation !== 'Wave') {
+      for (const name of HAND_BONES) {
+        if (!posedThisFrame.has(name)) pose(name, AXIS_Y, 0, AXIS_Z, 0, AXIS_X, 0, 5, delta);
+      }
     }
   });
 
