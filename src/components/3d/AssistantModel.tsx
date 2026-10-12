@@ -31,6 +31,9 @@ const smoothstep = (edge0: number, edge1: number, x: number) => {
 /** Total length of the greeting wave, timed in rendered frames. */
 const WAVE_DURATION = 3.4;
 
+/** Palm-facing roll for the waving hand (rolls about the raised forearm axis). */
+const WAVE_PALM = 2.0;
+
 const _qA = new THREE.Quaternion();
 const _qB = new THREE.Quaternion();
 const _qTarget = new THREE.Quaternion();
@@ -185,8 +188,9 @@ case 'Wave': {
         // round first and then only trailing, so it never reads as a twist.
         pose('upperarm_r', AXIS_Z, -1.2 + 0.03 * wave * waveOn, AXIS_X, 0, AXIS_Y, 0, 7, delta);
         pose('lowerarm_r', AXIS_Z, -1.1 + 0.26 * wave * waveOn, AXIS_X, 0, AXIS_Y, 0, 12, delta);
-        // Wrist: turns the palm to the viewer through the lead-in, then trails.
-        pose('hand_r', AXIS_Y, 0.62 * intro + 0.09 * Math.sin(wt * 7.4 - 0.6) * waveOn,
+        // Wrist: rolls the palm round to face the viewer through the lead-in,
+        // then only trails behind the forearm.
+        pose('hand_r', AXIS_Y, WAVE_PALM * intro + 0.09 * Math.sin(wt * 7.4 - 0.6) * waveOn,
           null, 0, null, 0, 12, delta);
         pose('head', AXIS_X, -0.06, AXIS_Y, -0.10, AXIS_Z, 0.05, 6, delta);
         break;
