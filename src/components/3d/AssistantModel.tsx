@@ -32,15 +32,11 @@ const smoothstep = (edge0: number, edge1: number, x: number) => {
 const WAVE_DURATION = 3.4;
 
 /**
- * Wrist roll that brings the waving palm square to the viewer, measured by
- * sweeping the roll against a reference: below ~2.8 the thumb sits on the
- * wrong side of the fingers, which is the back of the hand.
- *
- * Expressed as 3.3 - 2*PI rather than 3.3 so the lead-in turns the short way
- * round (171 deg) instead of spinning 189 deg the other direction to reach
- * the same orientation - rotations of the same hand pose differ only by 2*PI.
+ * Wrist roll that presents the palm toward the viewer. A high-zoom sweep
+ * showed -2.98 rad tilted the palm too far upward; -2.5 rad keeps it more
+ * forward-facing, closer to the inspiration image.
  */
-const WAVE_PALM = 3.3 - 2 * Math.PI;
+const WAVE_PALM = -2.5;
 
 /** Hand + finger bones, eased back to rest when an animation does not use them. */
 const HAND_BONES = [
